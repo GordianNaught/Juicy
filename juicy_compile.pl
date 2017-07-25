@@ -77,10 +77,8 @@ containsAssignment(Code) :-
 max(A,B,A) :- A>=B, !.
 max(_,B,B).
 % signature(Name,ArgTypes,ReturnType)
-findFunction(signature{name:Name,argTypes:ArgTypes,returnType:ReturnType},
-            [signature{name:Name,argTypes:ArgTypes,returnType:ReturnType}|_]) :- !.
-            
-findFunction(signature{name:Name,argTypes:ArgTypes,returnType:_},[]) :-
+findFunction(signature(Name,ArgTypes,ReturnType),[signature(Name,ArgTypes,ReturnType)|_]) :- !.
+findFunction(signature(Name,ArgTypes,_),[]) :-
   !,
   format("unable to find function `~w' with argument types ~w~n",[Name,ArgTypes]),
   fail.
@@ -90,7 +88,7 @@ findFunction(Signature,[_|Rest]):-
 start_context(
   [
     type('I',int),
-    signature{name:length,argTypes:[generic(vector,[_])],returnType:int,intrinsic:true}
+    signature(length,[generic(vector,[_])],int)
   ]).
 
 genvar(var(gen(VarName))) :- gensym(var,VarName), !.
@@ -239,7 +237,7 @@ compile(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnTyp
   genLabel(F,LabelName),
   compile_each([push(LabelName)|Args],CompiledArgs,Context,Context,Offset,OffsetBeforeApplication,N,[_Label|ArgTypes]),
   !,
-  findFunction(signature{name:F,argTypes:ArgTypes,returnType:ReturnType},Context),
+  findFunction(signature(F,ArgTypes,ReturnType),Context),
   appendAll(CompiledArgs,CompiledWithoutFuncall),
   length(Args,ArgCount),
   appendAll([CompiledWithoutFuncall,[func(F,ArgCount,LabelName)]],Compiled),
