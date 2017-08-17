@@ -14,16 +14,20 @@ arguments_list([A|R]) --> argument(A), plural_greedy_more(delimited_argument,R).
 delimited_argument(A) --> [','], argument(A).
 variable(var(Name)) --> [var(Name)].
 argument(arg(T,A)) --> type(T), [var(A)].
+argument(arg(Unbound,A)) --> [var(A)].
 type(generic(T,Args)) --> [var(T)], ['<'],delimited_types(Args),['>'].
 type(T) --> [var(T)].
 delimited_types([F|Rest]) --> type(F), plural_greedy_more(delimited_type,Rest).
 delimited_type(T) --> [','], type(T).
+signature(Name,Arguments,T) -->
+  type(T), ([var(Name)];math_op(Name)), arguments(Arguments);
+  ([var(Name)];math_op(Name)), arguments(Arguments).
 definition(definition(Name,Arguments,T,[return(Expr)])) -->
-  type(T), [var(Name)], arguments(Arguments), ['='], expr(Expr), [';'].
+  signature(Name,Arguments,T),
+  ['='], expr(Expr), [';'].
 definition(definition(Name,Arguments,T,Code)) -->
-  type(T),[var(Name)],
+  signature(Name,Arguments,T),
   %{write(definition(definition(Name,Arguments,[First|Rest])))},
-  arguments(Arguments),
   block(Code).
   %{write([First|Rest])}.
 statement_semi(Expr) --> [';'], statement(Expr).
@@ -74,7 +78,7 @@ expr(gen(Start,Finish,Index,Solution)) -->
   ['for'], variable(Index),
   ['from'], expr(Start),
   ['to'], expr(Finish).
-expr(math(Op,A,B)) --> value(A), math_op(Op), expr(B).
+expr(apply(var(Op),[A,B])) --> value(A), math_op(Op), expr(B).
 expr(post_apply(F,Args)) --> ['<'], variable(F), ['>'], arguments(Args).
 expr(apply(F,[])) --> variable(F), ['('], [')'].
 expr(apply(F,[Arg|Rest])) --> variable(F), ['('], expr(Arg), delimited_array_elements(Rest), [')'].

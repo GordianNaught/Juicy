@@ -3,26 +3,8 @@
 :- use_module(juicy_optimize, [optimize/3]).
 :- use_module(juicy_forth_to_x86, [forth_to_x86/3]).
 :- use_module(library(gensym), [gensym/2]).
+:- use_module(juicy_intrinsics, [intrinsic/3]).
 :- use_module(utils).
-
-returnType(op(+,int,int),int).
-returnType(op(-,int,int),int).
-returnType(op(*,int,int),int).
-returnType(op('/',int,int),int).
-returnType(op('%',int,int),int).
-returnType(op('<<',int,int),int).
-returnType(op('>>',int,int),int).
-returnType(op('<',int,int),bool).
-returnType(op('<=',int,int),bool).
-returnType(op('>',int,int),bool).
-returnType(op('>=',int,int),bool).
-returnType(op('==',int,int),bool).
-returnType(op('!=',int,int),bool).
-
-allSame([]) :- !.
-allSame([F|R]) :- allSame(F,R).
-allSame(_,[]) :- !.
-allSame(F,[F|R]) :- allSame(F,R).
 
 arguments_context(Args,ArgContext) :-
   arguments_context(Args,[],ArgContext,1).
@@ -77,6 +59,7 @@ containsAssignment(Code) :-
 max(A,B,A) :- A>=B, !.
 max(_,B,B).
 % signature(Name,ArgTypes,ReturnType)
+
 findFunction(signature(Name,ArgTypes,ReturnType),[signature(Name,ArgTypes,ReturnType)|_]) :- !.
 findFunction(signature(Name,ArgTypes,_),[]) :-
   !,
@@ -94,9 +77,9 @@ start_context(
 genvar(var(gen(VarName))) :- gensym(var,VarName), !.
 genLabel(Name,label(Label)) :- gensym(Name,Label), !.
 
-%compile(A,_,_,_,_,_,_,_) :-
-  %write(compile(A)), nl,
-  %fail.
+compile(A,_,_,_,_,_,_,_) :-
+  write(compile(A)), nl,
+  fail.
 
 %fix
 compile(gen(Start,Finish,var(Index),Solution),
@@ -243,6 +226,35 @@ compile(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnTyp
   appendAll([CompiledWithoutFuncall,[func(F,ArgCount,LabelName)]],Compiled),
   NewOffset is OffsetBeforeApplication-(ArgCount).
 
+% intrinsic funcall
+% no assignment in args
+% checked by not allowing extra stack space
+compile(apply_intrinsic(var(F),ArgTypes,Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
+  compile_each(Args,CompiledArgs,Context,Context,Offset,OffsetBeforeApplication,N,ArgTypes),
+  !,
+  appendAll(CompiledArgs,CompiledArgsAppended),
+  append(CompiledArgsAppended,[intrinsic(F,ArgTypes)],Compiled),
+  write(Compiled), nl,
+  length(Args,ArgCount),
+  write(NewOffSet is OffsetBeforeApplication - (ArgCount-1)), nl,
+  NewOffset is OffsetBeforeApplication - (ArgCount-1).
+  
+% intrinsics cannot tailcall, so I dispatch
+% using this case to catch it
+%
+% regular tail funcall
+tail(apply(var(F),Args),Compiled,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
+  compile_each(Args,CompiledArgs,Context,_,Offset,OffsetBeforeApplication,N,ArgTypes),
+  findFunction(signature(F,ArgTypes,ReturnType),Context),
+  intrinsic(F,ArgTypes,ReturnType),
+  !,
+  % adding the identity wrapper throws off the tail call detection to disuade it
+  compile(return(identity(apply(var(F),Args))),Compiled,Context,NewContext,Offset,NewOffset,N,ReturnType).
+
+% wrapper used to throw off compiler pattern matching
+compile(identity(X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
+  compile((X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType).
+
 % regular tail funcall
 % no assignment in args
 % checked by not allowing extra stack shifting
@@ -325,22 +337,23 @@ compile(math(-,num(int(0)),Y),
         int) :-
   compile(Y,CompiledY,Context,Context1,Offset,Offset1,N,int),
   !,
-  append(CompiledY,[op(-,int)],Code).
+  append(CompiledY,[intrinsic(-,[int])],Code).
 
 % no assignment allowed?
-compile(math(Op,X,Y), Compiled, Context, Context2, Offset, NewOffset, N, ReturnType) :-
-  compile(X,CompiledX,Context,Context1,Offset,Offset1,N,TypeX),
-  compile(Y,CompiledY,Context1,Context2,Offset1,Offset2,N,TypeY),
-  NewOffset is Offset2 - 1,
-  OperationInstruction =  op(Op,TypeX,TypeY),
-  !,
-  (returnType(OperationInstruction,ReturnType) ->
-    appendAll([CompiledX,CompiledY,[OperationInstruction]],Compiled)
-    ;
-    write("unable to find return type for: "),
-    write(OperationInstruction),
-    nl,
-    fail).
+%compile(apply(Op,[X,Y]), Compiled, Context, Context2, Offset, NewOffset, N, ReturnType) :-
+  %compile(X,CompiledX,Context,Context1,Offset,Offset1,N,TypeX),
+  %compile(Y,CompiledY,Context1,Context2,Offset1,Offset2,N,TypeY),
+  %NewOffset is Offset2 - 1,
+  %OperationInstruction =  intrinsic(Op,[TypeX,TypeY]),
+  %!,
+  %(returnType(OperationInstruction,ReturnType) ->
+    %appendAll([CompiledX,CompiledY,[OperationInstruction]],Compiled)
+    %;
+    %write("unable to find return type for: "),
+    %write(OperationInstruction),
+    %nl,
+    %fail).
+
 compile(return(apply(F,A)), Compiled, Context, NewContext, Offset, 0, LoopCount, Type) :-
   !,
   tail(apply(F,A),Compiled,Context,NewContext,Offset,_NewOffset,LoopCount,Type),

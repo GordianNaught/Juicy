@@ -1,9 +1,10 @@
-:- module(juicy, [compile/1,compile/2,repl/0,main/1]).
+:- module(juicy, [compile/1,compile/2,repl/0,main/1,infer_file/1]).
 
 :- use_module(juicy_tokenize, [tokenize/2]).
 :- use_module(juicy_parse, [parse/2]).
 :- use_module(juicy_compile, [compile_program/2]).
 :- use_module(juicy_forth_to_string, [forth_to_string/2]).
+:- use_module(juicy_inference, [infer_program/2]).
 :- use_module(utils).
 
 symbolic_asm_to_asm(function(Name,Instructions),Program) :-
@@ -32,7 +33,9 @@ compile(String,Proper) :-
   write(tokens=Tokens), nl,
   parse(Tokens,Ast),
   write(ast=Ast), nl,
-  compile_program(Ast,Forths),
+  infer_program(Ast,Definitions),
+  write(inferrences=Definitions), nl,
+  compile_program(Definitions,Forths),
   do_each(Forths,Forth,juicy:forth_to_asm(Forth,Asm),Asm,Asms),
   append_strings_delimited(Asms,Code,"\n"),
   format(
@@ -53,14 +56,22 @@ compile(FileName) :-
 compile_file_asm_string(FileName,Code) :-
   read_file_to_string(FileName,String,[]),
   compile(String,Code).
+
+infer_file(FileName) :-
+  read_file_to_string(FileName,String,[]),
+  tokenize(String,Tokens),
+  parse(Tokens,Ast),
+  write(infer_program(Ast, Inferrences)), nl,
+  infer_program(Ast, Inferrences),
+  write(Inferrences).
   
 write_to_file(string(S), OutputFile) :-
   open(OutputFile,write,Stream),
   write(Stream,S),
   close(Stream).
   
-compile_files(InputFile, OutputFile) :-
-  write(compile_files(InputFile,OutputFile)),
+compile_file(InputFile, OutputFile) :-
+  write(compile_file(InputFile,OutputFile)),
   compile_file_asm_string(InputFile,AsmCode),
   write_to_file(string(AsmCode), OutputFile).
   
@@ -73,12 +84,14 @@ assemble(Assembler,SourceFile,ExecutableName) :-
   !.
 
 main([_ProgramName|Args]) :-
+  write('parsing arguments'), nl,
   parse_args(Args,Dict),
   Dict = args{outputFile:OutputFile,
               inputFile:InputFile,
               assembler:Assembler,
               verbose:_Verbose},
-  compile_files(InputFile,OutputFile),
+  write(Dict), nl,
+  compile_file(InputFile,OutputFile),
   assemble(Assembler,OutputFile,'Compile/executable').
   
 parse_argument('-o',outputFile).

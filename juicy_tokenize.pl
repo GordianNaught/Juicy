@@ -29,6 +29,7 @@ tokenize(String,Tokens) :-
   string_codes(String,Codes),
   tokenize(Tokens,Codes,[]),
   !.
+token(def,"def").
 token(for,"for").
 token(if,"if").
 token(then,"then").

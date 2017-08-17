@@ -1,4 +1,10 @@
-:- module(utils, [appendAll/2,nCopies/3,do_each/5,append_strings_delimited/3]).
+:- module(utils, [appendAll/2,nCopies/3,do_each/5,append_strings_delimited/3,allSame/1]).
+:- meta_predicate do_each(?,?,0,?,?).
+
+allSame([]) :- !.
+allSame([F|R]) :- allSame(F,R).
+allSame(_,[]) :- !.
+allSame(F,[F|R]) :- allSame(F,R).
 
 appendAll(Lists,Answer) :- appendAll(Lists,[],AnswerR), reverse(AnswerR,Answer).
 

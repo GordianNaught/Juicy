@@ -3,6 +3,7 @@
 :- use_module(utils).
 :- use_module(library(clpfd)).
 :- use_module(assembly_optimize, [assembly_optimize/3]).
+:- use_module(juicy_intrinsics).
 
 size_of(int,8).
 size_of(float,8).
@@ -28,32 +29,7 @@ register_name(N,reg(N)).
 
 %state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames).
 start_state(ArgCount,state(0,8,0,ArgCount,registers(r8,r9,r10,r11,r12,r13,r14,r15))).
-compSetInstruction('>=',setge).
-compSetInstruction('>',setgt).
-compSetInstruction('<=',setle).
-compSetInstruction('<',setlt).
-compSetInstruction('==',sete).
-compSetInstruction('!=',setne).
 
-op_instruction(op(Comp,int,int),Source,Destination,
-  [xorl(reg(eax),reg(eax)),
-   cmp(Source,Destination),
-   ConstructedPart,
-   neg(reg(rax)),
-   mov(reg(rax),Destination)]) :-
-   compSetInstruction(Comp,CompInstruction),
-   !,
-   ConstructedPart =.. [CompInstruction,reg(al)].
-
-op_instruction(op(+,int,int),Source,Destination,[add(Source,Destination)]) :- !.
-op_instruction(op(+,float,float),Source,Destination,
-[fld(Source),fld(Destination),fadd(reg(st1),reg(st0)),fst(Destination)]) :- !.
-op_instruction(op(-,int,int),Source,Destination,[sub(Source,Destination)]) :- !.
-op_instruction(op(*,int,int),Source,Destination,[imul(Source,Destination)]) :- !.
-op_instruction(op(/,int,int),Source,Destination,[xorr(reg(rdx),reg(rdx)),mov(Destination,reg(rax)),idiv(Source),mov(reg(rax),Destination)]) :- !.
-op_instruction(op('%',int,int),Source,Destination,[xorr(reg(rdx),reg(rdx)),mov(Destination,reg(rax)),idiv(Source),mov(reg(rdx),Destination)]) :- !.
-op_instruction(op('<<',int,int),Source,Destination,[sarl(Source,Destination)]) :- !.
-op_instruction(op('>>',int,int),Source,Destination,[sarr(Source,Destination)]) :- !.
 
 op_instruction(Op,_Source,_Destination,_) :-
   !,
@@ -510,18 +486,19 @@ forth_to_asm([swap|Rest],
   forth_to_asm([swap|Rest],RestCode,State1,NewState),
   append([pop(Register)],RestCode,Code).
 
-forth_to_asm([op(Name,Type1) | Rest],Code,State,NewState) :-
+forth_to_asm([intrinsic(Name,[Type1]) | Rest],Code,State,NewState) :-
   !,
-  op_instruction(op(Name,Type1),Target,OperationCode),
+  op_instruction(intrinsic(Name,[Type1]),Target,OperationCode),
   force_to_register_and_get_first(Target,Buffering,State,State1),
   forth_to_asm(Rest,RestCode,State1,NewState),
   appendAll([Buffering,OperationCode,RestCode],Code).
   
   
   
-forth_to_asm([op(Name,Type1,Type2)|Rest],Code,State,NewState) :-
+forth_to_asm([intrinsic(Name,[Type1,Type2])|Rest],Code,State,NewState) :-
+  op(intrinsic(Name,[Type1,Type2]
   !,
-  op_instruction(op(Name,Type1,Type2),Source,Destination,OperationCode),
+  op_instruction(intrinsic(Name,[Type1,Type2]),Source,Destination,OperationCode),
   force_to_register_and_get_first(Source,Buffering,State,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
   pick(Destination,1,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
   NewUtilization is UtilizedRegisters - 1,
