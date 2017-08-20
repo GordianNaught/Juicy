@@ -1,9 +1,9 @@
 JUICY
 =====
 
-### Juicy is a low-level, compiled, purely functional, highly generic language with inferred types and tail recursion.
-### The juicy compiler is written in SWI-Prolog.
-### Juicy is still in development and at this stage not suitable for use.
+#### Juicy is a low-level, compiled, purely functional, highly generic language with inferred types and tail recursion.
+#### The juicy compiler is written in SWI-Prolog.
+#### Juicy is still in development and at this stage not suitable for use.
 
 ## Language Design Ethos
 - #### Anything that can be decided statically at compile time, will be.
