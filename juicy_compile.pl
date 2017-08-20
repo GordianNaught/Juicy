@@ -229,28 +229,16 @@ compile(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnTyp
 % intrinsic funcall
 % no assignment in args
 % checked by not allowing extra stack space
-compile(apply_intrinsic(var(F),ArgTypes,Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
+compile(apply_intrinsic(var(F),ArgTypes,ReturnType,Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
   compile_each(Args,CompiledArgs,Context,Context,Offset,OffsetBeforeApplication,N,ArgTypes),
   !,
   appendAll(CompiledArgs,CompiledArgsAppended),
   append(CompiledArgsAppended,[intrinsic(F,ArgTypes)],Compiled),
-  write(Compiled), nl,
+  %write(Compiled), nl,
   length(Args,ArgCount),
-  write(NewOffSet is OffsetBeforeApplication - (ArgCount-1)), nl,
+  %write(NewOffset is OffsetBeforeApplication - (ArgCount-1)), nl,
   NewOffset is OffsetBeforeApplication - (ArgCount-1).
   
-% intrinsics cannot tailcall, so I dispatch
-% using this case to catch it
-%
-% regular tail funcall
-tail(apply(var(F),Args),Compiled,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
-  compile_each(Args,CompiledArgs,Context,_,Offset,OffsetBeforeApplication,N,ArgTypes),
-  findFunction(signature(F,ArgTypes,ReturnType),Context),
-  intrinsic(F,ArgTypes,ReturnType),
-  !,
-  % adding the identity wrapper throws off the tail call detection to disuade it
-  compile(return(identity(apply(var(F),Args))),Compiled,Context,NewContext,Offset,NewOffset,N,ReturnType).
-
 % wrapper used to throw off compiler pattern matching
 compile(identity(X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
   compile((X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType).

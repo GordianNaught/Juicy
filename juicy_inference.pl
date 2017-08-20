@@ -3,8 +3,10 @@
 :- use_module(juicy_intrinsics, [intrinsic/3]).
 :- use_module(utils).
 
-:- dynamic
-  toCompile/1,
+:- dynamic(toCompile/1).
+:- dynamic(inferred/1).
+:- dynamic(signature/3).
+:- dynamic(signature_definition/2).
 
 signature(apply,[func([ArgTypes],ReturnType),ArgTypes],ReturnType).
 
@@ -70,13 +72,13 @@ infer(Definition,
   %write(def=Definition), sleep(3), nl,
   %write(args=Arguments), sleep(3), nl,
   arguments_context(Arguments,Context),
-  write(infer_each(Body,InferredBody, _Types, Context, NewContext, ReturnType)), nl,
+  %write(infer_each(Body,InferredBody, _Types, Context, NewContext, ReturnType)), nl,
   arguments_types(Arguments,ArgumentTypes),
   infer_each(Body,
              InferredBody,
              _Types,
              [current(Name,ArgumentTypes,ReturnType)|Context],
-             NewContext,
+             _NewContext,
              ReturnType),
   write(here),nl,
   
@@ -120,12 +122,14 @@ infer(if(Condition,Body),
     fail).
 
 % TODO
-infer(return(apply(var(X),Args)),
-      InferredCode,
-      ReturnType,
-      Context,
-      ContextAfter,
-      FunctionReturnType) :- write("uninplemented\n"),fail.
+infer(return(apply(var(_X),_Args)),
+  _InferredCode,
+  _ReturnType,
+  _Context,
+  _ContextAfter,
+  _FunctionReturnType) :-
+      
+  write("uninplemented\n"),fail.
   
       
 infer(return(Expr),
@@ -174,7 +178,7 @@ infer(apply(var(X),Args),
       )
     ;
     intrinsic(X,ArgTypes,Type) ->
-      InferredCode = apply_intrinsic(var(X),ArgTypes,InferredArgs), !
+      InferredCode = apply_intrinsic(var(X),ArgTypes,Type,InferredArgs), !
     ;
     %apply function 
     findall(s(N,A,R),signature(N,A,R),S),
@@ -227,7 +231,7 @@ catalog_nonground(NongroundDefinitions) :-
 
 catalog_ground(GroundDefinitions) :-
   perform_each(GroundDefinitions,
-               definition(Name,Arguments,ReturnType,Body),
+               definition(Name,Arguments,ReturnType,_Body),
                (
                  arguments_types(Arguments,ArgTypes),
                  assert(signature(Name,ArgTypes,ReturnType)))).

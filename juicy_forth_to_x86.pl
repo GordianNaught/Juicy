@@ -218,7 +218,7 @@ nip(NipCount,
     state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
     %assume at least one registerget_first_register
     state(1,RegisterCount,RegisterShift,NewStackOffset,RegisterNames)) :-
-  StackNips is NipCount - 1,
+  %StackNips is NipCount - 1,
   get_register(FirstRegister,0,state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
   NewStackOffset is StackOffset - (NipCount+1).
 drop(0,[],S,S) :- !.
@@ -264,9 +264,9 @@ pick(Place,Position,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOff
   RegisterIndex is UtilizedRegisters - (1 + Position),
   get_register(Place,RegisterIndex,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)).
   
-%forth_to_asm(A,B,C,D) :-
-  %write((A,B,C,D)),nl,
-  %fail.
+forth_to_asm(A,B,C,D) :-
+  write((A,B,C,D)),nl,
+  fail.
 
 pick_from_top(stack(StackIndex),Index,state(_UtilizedRegisters,_RegisterCount,_RegisterShift,StackOffset,_RegisterNames)) :-
   Index < StackOffset,
@@ -488,21 +488,31 @@ forth_to_asm([swap|Rest],
 
 forth_to_asm([intrinsic(Name,[Type1]) | Rest],Code,State,NewState) :-
   !,
-  op_instruction(intrinsic(Name,[Type1]),Target,OperationCode),
+  intrinsic_instructions(intrinsic(Name,[Type1]),Target,OperationCode),
   force_to_register_and_get_first(Target,Buffering,State,State1),
   forth_to_asm(Rest,RestCode,State1,NewState),
   appendAll([Buffering,OperationCode,RestCode],Code).
   
   
   
-forth_to_asm([intrinsic(Name,[Type1,Type2])|Rest],Code,State,NewState) :-
-  op(intrinsic(Name,[Type1,Type2]
+forth_to_asm(
+  [intrinsic(Name,[Type1,Type2])|Rest],
+  Code,
+  State,
+  NewState) :-
+
+  intrinsic(Name,[Type1,Type2],_ReturnType),
   !,
-  op_instruction(intrinsic(Name,[Type1,Type2]),Source,Destination,OperationCode),
+  intrinsic_instructions(
+    intrinsic(Name,[Type1,Type2]),
+    Source,
+    Destination,
+    OperationCode),
   force_to_register_and_get_first(Source,Buffering,State,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
   pick(Destination,1,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
   NewUtilization is UtilizedRegisters - 1,
-  State1 = state(NewUtilization,RegisterCount,RegisterShift,StackOffset,RegisterNames),
+  State1 =
+    state(NewUtilization,RegisterCount,RegisterShift,StackOffset,RegisterNames),
   forth_to_asm(Rest,RestCode,State1,NewState),
   appendAll([Buffering,OperationCode,RestCode],Code).
   

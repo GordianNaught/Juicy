@@ -1,0 +1,153 @@
+#!/usr/bin/juicy
+
+// increment an integer
+//int increment(int x) = x+1;
+
+// increment anything
+// increment(x) = x+1;
+// double an integer using a bit shift
+//int twice(int x) = x<<1;
+
+// find the factorial of an integer
+// make call to tail-recursive routine
+//int factorial(int x) = factorialtr(x,1);
+
+// tail recursive routine for finding
+// the factorial of an integer
+
+// accumulator is assumed to start
+// at 1
+factorialTail(x, acc) {
+  if x == 0 {
+    return acc;
+  }
+  // tail recursive call
+  return factorialTail(x-1,x*acc);
+}
+
+// wrapper on tail recursive factorial
+factorial(x) = factorialTail(x,1);
+
+inc(x) = 1+x;
+
+int main() = factorial(3);
+
+/*
+int main() {
+  return factorialtr(3,1);
+}
+*/
+
+/*
+factorialtr(x,acc) {
+  if x == 0 {
+    return acc;
+  }
+  return factorialtr(x-1,x*acc);
+}
+
+factorialtr(x,acc) = x==0 ? acc :factorialtr(x-1,x*acc);
+factorial(x) = factorialtr(x,1);
+*/
+/*
+bool any(things,predicate) {
+  for thing in things do
+    if predicate(thing) then
+      return true;
+  return false;
+}
+*/
+
+//bool even(int x) = 0==x%2;
+
+//bool containsAnyEven(things) = any(things, even);
+/*
+
+int addAll(int x, things) {
+  f = lambda([n],n+x);
+  get f(thing) for thing in things;
+}
+
+func<int,int> adder(int n) = lambda([x],x+n);
+
+
+
+class closure1 {
+  int n;
+  closure1(int given) {
+    this.n = given;
+    return this;
+  }
+  call(int x) {  // int call(this,int x)
+    return x+this.n;
+  }
+}
+
+closure<int,int> adder(int n) = closure1(n);
+
+
+vec<int> map(closure<int,int> f, things) {
+  get f(thing) for thing in things;
+}
+
+vec<int> map(closure<int,int> f, things) {
+  get call(f,thing) for thing in things;
+}
+
+makeFuncs(n) = [lambda([],n),lambda([x],x+n)]
+vec([closure1,func(int,int)]) makeFuncs(int n) = [lambda([],n),lambda([int x],x+n)]
+
+class unionType {
+  
+}
+map(func,things) = get func(thing) for thing in things;
+
+addAll(n, things) {
+  addn = adder(n);
+  value = map(addn,things);
+  free(addn);
+}
+*/
+
+/*
+
+nums(n) = get x for x from 0 to n;
+
+sumFirst(n) = aggregate(nums(n),lambda(a,b) -> a+b);
+
+aggregate(things,f) {
+  return aggregate(things,1,length(things),f,things[0]);
+}
+aggregate(things, f, acc) {
+  return aggregate(things,0,length(things),f,acc);
+}
+aggregate(things,i,l,f,acc) {
+  if (i==l)
+    return acc;
+  return aggregate(things,i+1,l,f,f(acc,things[i]));
+  
+}
+sum(things) {
+  sum(things,0,length(things),0);
+}
+
+sum(things,i,end,acc) {
+  if (i==end) {
+    return acc;
+  }
+  return sum(things,i+1,end,things[i]+acc);
+}
+
+vec<byte> removeSpaces(vec<byte> x) = get c for c in x where c != byte(' ');
+vec<char> removeSpaces(vec<char> x) = get c for c in x where c != ' ';
+
+removeSpaces(vec<StringElement> x) =
+  get c for c in x where c != StringElement(' ');
+
+
+convertSpacesInPlace(vec<StringElement> string) {
+  return get if c == StringElement(' ') get StringElement('_') else c
+         for c in x
+         into x;
+
+*/
