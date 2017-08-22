@@ -1,4 +1,4 @@
-:- module(juicy, [compile/1,compile/2,repl/0,main/1,infer_file/1]).
+:- module(juicy, [compile/1,compile/2,repl/0,start/1,infer_file/1]).
 
 :- use_module(juicy_tokenize, [tokenize/2]).
 :- use_module(juicy_parse, [parse/2]).
@@ -83,16 +83,29 @@ assemble(Assembler,SourceFile,ExecutableName) :-
   shell(Command,_ReturnValue),
   !.
 
-main([_ProgramName|Args]) :-
+inputFile_check(Arguments) :-
+  ground(Arguments.inputFile)
+  ;
+  write("ERROR: An input file must be supplied.\n"),
+  write(Arguments), nl,
+  fail.
+  
+check_arguments(Arguments) :-
+  inputFile_check(Arguments).
+
+% TODO: remove dictionary usage for GNU Prolog compatibility
+start([_ProgramName|Args]) :-
   write('parsing arguments'), nl,
   parse_args(Args,Dict),
   Dict = args{outputFile:OutputFile,
               inputFile:InputFile,
               assembler:Assembler,
               verbose:_Verbose},
-  write(Dict), nl,
+  check_arguments(Dict),
   compile_file(InputFile,OutputFile),
-  assemble(Assembler,OutputFile,'Compile/executable').
+  ExecutablePath = 'Compile/executable',
+  assemble(Assembler,OutputFile,ExecutablePath),
+  format("~w created\n", [ExecutablePath]).
   
 parse_argument('-o',outputFile).
 parse_argument('-i',inputFile).
@@ -102,10 +115,11 @@ parse_argument('-v',verbose).
 parse_args(Args,ArgDict) :-
   DefaultDict = args{verbose:false,
                      outputFile:'output.s',
+                     inputFile:_,
                      assembler:'gcc'},
   parse_args(Args,DefaultDict,ArgDict).
 
-parse_args([],Dict,Dict).
+parse_args([],Arguments,Arguments).
 parse_args([Flag,Argument|Rest],StartDict,FinalDict) :-
   parse_argument(Flag,FlagName),
   NewDict = StartDict.put([FlagName=Argument]),

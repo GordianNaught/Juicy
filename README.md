@@ -1,8 +1,12 @@
-JUICY
-=====
+                                          /¯/
+           ⍟           ⍟                 / /
+         /¯/ /¯/ /¯/ /¯/ /¯¯¯¯/ /¯/ /¯/ / /
+        / / / /_/ / / / / /¯¯¯ / /_/ / /_/
+     __/ /  \__,_/ /_/  \ ¯¯/  \__, /  ⍟
+    /___/ ≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡ /____/ ≡≡≡≡≡≡≡≡≡≡≡
 
 #### Juicy is a low-level, compiled, purely functional, highly generic language with inferred types and tail recursion.
-#### The juicy compiler is written in SWI-Prolog.
+#### The juicy compiler is written in Prolog.
 #### Juicy is still in development and at this stage not suitable for use.
 
 ## Language Design Ethos
@@ -13,6 +17,18 @@ JUICY
 - #### Inferrence is good.
 - #### Interfaces are implicit.
 
+# Table of Contents
+* [Current Status](##current-status)
+* [Immediate Plans](##immediate-plans)
+* [Example Program](##example-program)
+* [Example Output](##example-output)
+* [Installation](##installation)
+* [Use Instructions](##use-instructions)
+* [Compiler Design](##compiler-design)
+  * [Parsing](###parsing)
+  * [Inferrence](###inferrence)
+  * [Compilation](###compilation)
+
 ## Current Status
 - [x] parser
 - [x] type inferrence
@@ -22,26 +38,40 @@ JUICY
 - [x] asm peephole optimization
 - [x] emit x64
 - [x] higher order functions
+- [x] Makefile
+- [ ] GNU Prolog support
+- [ ] remove gcc dependecy in favor of `as` and `ld`
 - [ ] fix calling convention of generated main function
-- [ ] test cases written
+- [ ] add cuts in all places where non-determinism not needed
+- [ ] make debug output during compilation optional
+- [ ] test cases
 - [ ] make internal names of functions carry signature information
 - [ ] classes
 - [ ] methods
 - [ ] anonymous functions (lambdas)
+- [ ] multiple return values
+- [ ] inline functions
 - [ ] many base types
 - [ ] vector intrinsics
-- [ ] many intrinsics
+- [ ] many other intrinsics
 - [ ] intrinsics as arguments to higher order functions
 - [ ] implicit tagged unions
 - [ ] pooling memory allocator
 - [ ] constant folding
 - [ ] macros
+- [ ] parallelism support
+- [ ] debug compilation
+- [ ] debug annotations
+- [ ] flag to remove tail recursion for debug compile traces
 
-## Immediate plans
+## Immediate Plans
 - fix calling convention of generated main function
   - without this the generated assembly cannot be ran without modification
 - make internal names of functions carry signature information
   - without this a function cannot be used generically as two different signatures
+- remove superfluous inference from the compilation code
+  - inference was separated from compilation as generics began to be implemented
+- GNU Prolog support
 
 ## Example Program
 ```C
@@ -109,6 +139,38 @@ main:
   jmp   factorial
 ```
 
+## Installation
+The juicy compiler is written in Prolog and intended to be compiled.
+A Makefile is provided.
+Compilation of the juicy compiler can currently be accomplished using SWI-Prolog.
+GNU Prolog support is under development.
+You will need SWI-Prolog and gcc installed to install juicy.
+
+### Getting Prolog
+#### Debian-based GNU/Linux)
+##### SWI-Prolog
+    sudo apt-get install swipl
+##### GNU Prolog (not yet supported)
+    sudo apt-get install gprolog
+#### RPM-based GNU/Linux)
+##### SWI-Prolog
+    sudo yum install swipl
+##### GNU Prolog (not yet supported)
+    sudo yum install gprolog
+    
+### Building Juicy
+#### Building with SWI-Prolog
+    git clone THISREPO
+    cd REPOFOLDER
+    make swipl
+#### Building with GProlog (not yet supported)
+    git clone THISREPO
+    cd REPOFOLDER
+    make gprolog
+
+## Use Instructions
+    juicy -i INPUTFILE.juicy -o OUTPUTEXECUTABLE
+    
 ## Compiler Design
 ### parsing
 Parsing is accomplished using DCGs (Definite Clause Grammars).

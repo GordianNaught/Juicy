@@ -264,10 +264,6 @@ pick(Place,Position,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOff
   RegisterIndex is UtilizedRegisters - (1 + Position),
   get_register(Place,RegisterIndex,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)).
   
-forth_to_asm(A,B,C,D) :-
-  write((A,B,C,D)),nl,
-  fail.
-
 pick_from_top(stack(StackIndex),Index,state(_UtilizedRegisters,_RegisterCount,_RegisterShift,StackOffset,_RegisterNames)) :-
   Index < StackOffset,
   !,
@@ -311,6 +307,10 @@ move_n_to_top(Count,StartCount,Code,State,NewState) :-
   move_n_to_top(Location,StartCount,RestCode,State,NewState),
   appendAll([[mov(stack(S),reg(rax)),mov(reg(rax),Target)],RestCode],Code).
   
+forth_to_asm(A,B,C,D) :-
+  write((A,B,C,D)),nl,
+  fail.
+
 % no registers used and StackOffset is one
 forth_to_asm([],
              [pop(reg(rax)),ret],

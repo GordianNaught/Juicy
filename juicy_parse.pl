@@ -14,7 +14,7 @@ arguments_list([A|R]) --> argument(A), plural_greedy_more(delimited_argument,R).
 delimited_argument(A) --> [','], argument(A).
 variable(var(Name)) --> [var(Name)].
 argument(arg(T,A)) --> type(T), [var(A)].
-argument(arg(Unbound,A)) --> [var(A)].
+argument(arg(_Unbound,A)) --> [var(A)].
 type(generic(T,Args)) --> [var(T)], ['<'],delimited_types(Args),['>'].
 type(T) --> [var(T)].
 delimited_types([F|Rest]) --> type(F), plural_greedy_more(delimited_type,Rest).

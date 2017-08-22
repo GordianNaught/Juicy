@@ -259,33 +259,3 @@ infer_program(Definitions, Inferrences) :-
   nl,nl,
   perform_each(Inferrences,definition(Name,Args,R,_),format("~w ~w~w\n",[R,Name,Args])).
   
-%infer_program1(Definitions, Inferrences) :-
-  %write(infer_program(Definitions, Inferrences)), nl,
-  %do_each(Definitions,
-          %definition(Name,ArgTypes,ReturnType,Body),
-          %assert(signature_definition(signature(Name, ArgTypes, ReturnType),
-                                      %definition(Name,ArgTypes,ReturnType, Body))),
-          %_,
-          %_),
-  %write(here), nl,
-  %write(get_where(Definition, groundDefinition(Definition), Definitions, GroundDefinitions)), nl,
-  %get_where(Definition, groundDefinition(Definition), Definitions, GroundDefinitions),
-  %write(get_where(Definition, groundDefinition(Definition), Definitions, GroundDefinitions)), nl,
-  %write(infer_program(GroundDefinitions,[], Inferrences)), nl,
-  %infer_program(GroundDefinitions,[], Inferrences).
-
-%definition_signature(definition(
-
-%infer_program1([],Lists,Solution) :- !, appendAll(Lists,Solution).
-%infer_program1(GroundDefinitions, Start, InfferedLists) :-
-  %infer_each(GroundDefinitions,InferredDefinitions, _Types, Definitions, Definitions, _),
-  %findall(ToInfer,toInfer(ToInfer),NewGrounds),
-  %retractall(toInfer(_)),
-  %!,
-  %infer_program(NewGrounds,[InferredDefinitions|Start],InfferedLists).
-  
-  
-
-
-
-
