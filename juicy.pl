@@ -102,9 +102,9 @@ start([_ProgramName|Args]) :-
               assembler:Assembler,
               verbose:_Verbose},
   check_arguments(Dict),
-  compile_file(InputFile,OutputFile),
-  ExecutablePath = 'Compile/executable',
-  assemble(Assembler,OutputFile,ExecutablePath),
+  compile_file(InputFile,'assembly.s'),
+  ExecutablePath = OutputFile,
+  assemble(Assembler,'assembly.s',ExecutablePath),
   format("~w created\n", [ExecutablePath]).
   
 parse_argument('-o',outputFile).
@@ -114,7 +114,7 @@ parse_argument('-v',verbose).
 
 parse_args(Args,ArgDict) :-
   DefaultDict = args{verbose:false,
-                     outputFile:'output.s',
+                     outputFile:'a.out',
                      inputFile:_,
                      assembler:'gcc'},
   parse_args(Args,DefaultDict,ArgDict).
