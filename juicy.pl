@@ -137,6 +137,10 @@ parse_args([Flag|Rest],StartDict,FinalDict) :-
   !,
   NewDict = StartDict.put([FlagName=Argument]),
   parse_args(Rest,NewDict,FinalDict).
+parse_args([InputFile|Rest],StartDict,FinalDict) :-
+  not(ground(StartDict.inputFile)),
+  NewDict = StartDict.put([inputFile=InputFile]),
+  parse_args(Rest,NewDict,FinalDict).
 parse_args(Given,_,_) :-
   format("unable to parse arguments, parsing failed at ~w",
          [Given]),
