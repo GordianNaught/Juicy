@@ -108,10 +108,16 @@ start([_ProgramName|Args]) :-
   assemble(Assembler,AssemblyName,ExecutablePath),
   format("~w created\n", [ExecutablePath]).
   
-parse_argument('-o',outputFile).
-parse_argument('-i',inputFile).
-parse_argument('-a',assembler).
-parse_argument('-v',verbose).
+parse_argument('-o',outputFile,specifier).
+parse_argument('--output-file',outputFile,specifier).
+parse_argument('-i',inputFile,specifier).
+parse_argument('--input-file',inputFile,specifier).
+parse_argument('-a',assembler,specifier).
+parse_argument('--assembler',assembler,specifier).
+parse_argument('-v',verbose,flag).
+parse_argument('--verbose',verbose,flag).
+parse_argument('-q',quiet,flag).
+parse_argument('--quiet',quiet,flag).
 
 parse_args(Args,ArgDict) :-
   DefaultDict = args{verbose:false,
@@ -120,11 +126,22 @@ parse_args(Args,ArgDict) :-
                      assembler:'gcc'},
   parse_args(Args,DefaultDict,ArgDict).
 
-parse_args([],Arguments,Arguments).
-parse_args([Flag,Argument|Rest],StartDict,FinalDict) :-
-  parse_argument(Flag,FlagName),
+parse_args([],Arguments,Arguments) :- !.
+parse_args([Specifier,Argument|Rest],StartDict,FinalDict) :-
+  parse_argument(Specifier,SpecifierName,specifier),
+  !,
+  NewDict = StartDict.put([SpecifierName=Argument]),
+  parse_args(Rest,NewDict,FinalDict).
+parse_args([Flag|Rest],StartDict,FinalDict) :-
+  parse_argument(Flag,FlagName,flag),
+  !,
   NewDict = StartDict.put([FlagName=Argument]),
   parse_args(Rest,NewDict,FinalDict).
+parse_args(Given,_,_) :-
+  format("unable to parse arguments, parsing failed at ~w",
+         [Given]),
+  !,
+  fail.
 
 
 % TODO: allow args like -abc
