@@ -18,16 +18,16 @@
 - #### Interfaces are implicit.
 
 # Table of Contents
-* [Current Status](##current-status)
-* [Immediate Plans](##immediate-plans)
-* [Example Program](##example-program)
-* [Example Output](##example-output)
-* [Installation](##installation)
-* [Use Instructions](##use-instructions)
-* [Compiler Design](##compiler-design)
-  * [Parsing](###parsing)
-  * [Inferrence](###inferrence)
-  * [Compilation](###compilation)
+* [Current Status](#current-status)
+* [Immediate Plans](#immediate-plans)
+* [Example Program](#example-program)
+* [Example Output](#example-output)
+* [Installation](#installation)
+* [Use Instructions](#use-instructions)
+* [Compiler Design](#compiler-design)
+  * [Parsing](#parsing)
+  * [Inferrence](#inferrence)
+  * [Compilation](#compilation)
 
 ## Current Status
 - [x] parser
