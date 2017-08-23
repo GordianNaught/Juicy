@@ -102,9 +102,10 @@ start([_ProgramName|Args]) :-
               assembler:Assembler,
               verbose:_Verbose},
   check_arguments(Dict),
-  compile_file(InputFile,'assembly.s'),
+  format(string(AssemblyName), "~w.s", [OutputFile]),
+  compile_file(InputFile,AssemblyName),
   ExecutablePath = OutputFile,
-  assemble(Assembler,'assembly.s',ExecutablePath),
+  assemble(Assembler,AssemblyName,ExecutablePath),
   format("~w created\n", [ExecutablePath]).
   
 parse_argument('-o',outputFile).
