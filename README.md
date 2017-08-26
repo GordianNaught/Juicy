@@ -41,11 +41,11 @@
 - [x] Makefile
 - [ ] GNU Prolog support
 - [ ] remove gcc dependecy in favor of `as` and `ld`
-- [ ] fix calling convention of generated main function
+- [x] fix calling convention of generated main function
 - [ ] add cuts in all places where non-determinism not needed
 - [ ] make debug output during compilation optional
 - [ ] test cases
-- [ ] make internal names of functions carry signature information
+- [x] make internal names of functions carry signature information
 - [ ] classes
 - [ ] methods
 - [ ] anonymous functions (lambdas)
@@ -65,10 +65,7 @@
 - [ ] flag to remove tail recursion for debug compile traces
 
 ## Immediate Plans
-- fix calling convention of generated main function
-  - without this the generated assembly cannot be ran without modification
-- make internal names of functions carry signature information
-  - without this a function cannot be used generically as two different signatures
+- add more built in types and intrinsics
 - remove superfluous inference from the compilation code
   - inference was separated from compilation as generics began to be implemented
 - GNU Prolog support

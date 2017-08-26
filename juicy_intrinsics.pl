@@ -35,7 +35,7 @@ intrinsic_instructions(
   intrinsic(Comp,[int,int]),
   Source,
   Destination,
-  [xorl(reg(eax),reg(eax)),
+  [xor(reg(rax),reg(rax)),
    cmp(Source,Destination),
    ConstructedPart,
    neg(reg(rax)),

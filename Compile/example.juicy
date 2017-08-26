@@ -30,7 +30,7 @@ factorial(x) = factorialTail(x,1);
 
 inc(x) = 1+x;
 
-int main() = factorial(3);
+int main() = factorial(7);
 
 /*
 int main() {

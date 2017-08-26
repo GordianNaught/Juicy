@@ -162,13 +162,14 @@ compile(if(Condition,Body),Code,Context,Context,Offset,Offset,N,void) :-
 compile('I',['I'],C,C,O,NO,_,int) :- NO is O + 1.
 
 compile(definition(Name,Arguments,ReturnType,Body),
-        [function(Name,Asm)],
+        [function(Name,ArgumentTypes,Asm)],
         StartContext,
         StartContext,
         Offset,
         _,
         N,
         void) :-
+  arguments_types(Arguments,ArgumentTypes),
   arguments_context(Arguments,ArgContext),
   get_signatures([definition(Name,Arguments,ReturnType,Body)],[Signature]),
   appendAll([ArgContext,[currentSignature(Signature)],StartContext],FullContext),
@@ -223,7 +224,12 @@ compile(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnTyp
   findFunction(signature(F,ArgTypes,ReturnType),Context),
   appendAll(CompiledArgs,CompiledWithoutFuncall),
   length(Args,ArgCount),
-  appendAll([CompiledWithoutFuncall,[func(F,ArgCount,LabelName)]],Compiled),
+  appendAll(
+    [
+      CompiledWithoutFuncall,
+      [func(F,ArgTypes,ArgCount,LabelName)]
+    ],
+    Compiled),
   NewOffset is OffsetBeforeApplication-(ArgCount).
 
 % intrinsic funcall
@@ -247,12 +253,25 @@ compile(identity(X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
 % no assignment in args
 % checked by not allowing extra stack shifting
 tail(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
-  compile_each(Args,CompiledArgs,Context,Context,Offset,OffsetBeforeApplication,N,ArgTypes),
+  compile_each(
+    Args,
+    CompiledArgs,
+    Context,
+    Context,
+    Offset,
+    OffsetBeforeApplication,
+    N,
+    ArgTypes),
   !,
   findFunction(signature(F,ArgTypes,ReturnType),Context),
   appendAll(CompiledArgs,CompiledWithoutFuncall),
   length(Args,ArgCount),
-  appendAll([CompiledWithoutFuncall,[tailcall(F,ArgCount)]],Compiled),
+  appendAll(
+    [
+      CompiledWithoutFuncall,
+      [tailcall(F,ArgTypes,ArgCount)]
+    ],
+    Compiled),
   NewOffset is OffsetBeforeApplication-(ArgCount).
   
 % regular funcall
@@ -266,7 +285,7 @@ compile(apply(var(F),Args),Compiled,Context,NewContext,Offset,NewOffset,N,Return
   !,
   findFunction(signature(F,ArgTypes,ReturnType),Context),
   appendAll(CompiledBeforeFuncCallParts,CompiledBeforeFuncCall),
-  append(CompiledBeforeFuncCall,[func(F,ArgCount)],Compiled),
+  append(CompiledBeforeFuncCall,[func(F,ArgTypes,ArgCount)],Compiled),
   NewOffset is OffsetBeforeApplication-(ArgCount-1).
 
 %compile(apply(F,_Args),_Compiled,_Context,_NewContext,_Offset,_NewOffset,_N,_Type) :-

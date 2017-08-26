@@ -9,8 +9,8 @@ commutative('|').
 commutative(&).
 commutative(and).
 commutative(or).
-monadic(func(name,1,_ReturnLabel)).
-binary(func(name,2,_ReturnLabel)).
+monadic(func(name,_,1,_ReturnLabel)).
+binary(func(name,_,2,_ReturnLabel)).
 binary(op(OpName,_Type1,_Type2)) :- !, binary(OpName).
 binary('<<').
 binary(+).
@@ -23,12 +23,28 @@ binary('||').
 binary('%').
 binary('/').
 
-optimize_step([dup,tailcall(Name,1)|Rest],[tailcall(Name,1)|Rest]).
-optimize_step([over,over,tailcall(Name,2)|Rest],[tailcall(Name,2)|Rest]).
-optimize_step(['2dup',tailcall(Name,2)|Rest],[tailcall(Name,2)|Rest]).
-optimize_step(['2dup',swap,tailcall(Name,2)|Rest],[swap,tailcall(Name,2)|Rest]).
-optimize_step([dup,tailcall(Name,1)|Rest],[tailcall(Name,1)|Rest]).
-optimize_step([dup,func(Name,1),nip|Rest],[func(Name,1)|Rest]).
+optimize_step(
+  [dup,tailcall(Name,Types,1)|Rest],
+  [tailcall(Name,Types,1)|Rest]
+).
+optimize_step(
+  [over,over,tailcall(Name,Types,2)|Rest],
+  [tailcall(Name,Types,2)|Rest]
+).
+optimize_step(
+  ['2dup',tailcall(Name,Types,2)|Rest],
+  [tailcall(Name,Types,2)|Rest]
+).
+optimize_step(
+  ['2dup',swap,tailcall(Name,Types,,2)|Rest],
+  [swap,tailcall(Name,Types,2)|Rest]
+).
+optimize_step(
+  [dup,tailcall(Name,Types,1)|Rest],
+  [tailcall(Name,Types,1)|Rest]
+).
+optimize_step([dup,func(Name,Types,1,RetLabel),nip|Rest],
+              [func(Name,Types,1,RetLabel)|Rest]).
 optimize_step(['2dup',Binary,nip,nip|Rest],[Binary|Rest]) :-
   binary(Binary).
 optimize_step([dup,num(Num1),num(Num2),Op1,Op2,nip|Rest],[num(Num1),num(Num2),Op1,Op2|Rest]):-

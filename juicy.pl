@@ -7,10 +7,28 @@
 :- use_module(juicy_inference, [infer_program/2]).
 :- use_module(utils).
 
-symbolic_asm_to_asm(function(Name,Instructions),Program) :-
+juicyMainName(Name) :-
+  cleanLabel((main,[]),Name).
+  
+mainAsm(Func) :-
+  juicyMainName(JuicyMain),
+  format(
+    string(Func),
+"main:
+  pushq $returnLoc
+  jmp ~w
+returnLoc:
+  movl %eax, %edi
+  call exit
+",
+    [JuicyMain]).
+  
+
+symbolic_asm_to_asm(function(Name,ArgTypes,Instructions),Program) :-
   symbolic_instructions_to_asm(Instructions,Asm),
   !,
-  format(string(Program),"~w:\n~w",[Name,Asm]).
+  cleanLabel((Name,ArgTypes),Label),
+  format(string(Program),"~w:\n~w",[Label,Asm]).
 
 symbolic_instructions_to_asm([],"") :- !.
 symbolic_instructions_to_asm([I|Rest],Asm) :-
@@ -38,10 +56,11 @@ compile(String,Proper) :-
   compile_program(Definitions,Forths),
   do_each(Forths,Forth,juicy:forth_to_asm(Forth,Asm),Asm,Asms),
   append_strings_delimited(Asms,Code,"\n"),
+  mainAsm(MainAsm),
   format(
     string(Proper),
-    ".section .data\nep_init:~nblock_buffers:\n.section .bss\n.section .text\n.globl main\n~w\n",
-    [Code]),
+    ".section .data\nep_init:~nblock_buffers:\n.section .bss\n.section .text\n.globl main\n\n~w\n~w",
+    [Code,MainAsm]),
   format(Proper),nl,nl.
   
 repl :-

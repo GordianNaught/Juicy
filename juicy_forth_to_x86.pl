@@ -45,6 +45,7 @@ op_instruction(Op,_Target,_) :-
 translate_location(reg(Name),String) :-
   !,
   format(string(String),"%~w",[Name]).
+
 translate_location(stack(N),String) :-
   !,
   Offset is N*8,
@@ -58,7 +59,7 @@ translate_location(N*cell_size,String) :-
 translate_location('$'(N),String) :-
   !,
   format(string(String),"$~w",[N]).
-
+translate_location(label(Name), Name).
 translate_location(stack_pointer,"%rsp").
 translate_location(Atom, String) :-
   atom(Atom),
@@ -74,8 +75,8 @@ translate_instruction_name(xorl,"xorl").
 translate_instruction_name(cmp,"cmpq").
 translate_instruction_name(setge,"setge").
 translate_instruction_name(setne,"setne").
-translate_instruction_name(setgt,"setgt").
-translate_instruction_name(setlt,"setlt").
+translate_instruction_name(setgt,"setg").
+translate_instruction_name(setlt,"setl").
 translate_instruction_name(setle,"setle").
 translate_instruction_name(sete,"sete").
 translate_instruction_name(neg,"negq").
@@ -93,7 +94,7 @@ translate_instruction_name(add,"addq").
 translate_instruction_name(sub,"subq").
 translate_instruction_name(idiv,"idivq").
 translate_instruction_name(mov,"movq").
-translate_instruction_name(xorr,"xorq").
+translate_instruction_name(xor,"xorq").
 translate_instruction_name(sarl,"sarlq").
 translate_instruction_name(sarr,"sarrq").
 translate_instruction_name(Any,_) :-
@@ -120,11 +121,11 @@ translate_instruction(Instruction,String) :-
   !,
   translate_location(Location, LocationString),
   format(string(String),"~w   ~w",[InstructionNameString, LocationString]).
-
+  
 translate_instruction(reg(Name),String) :-
   !,
   format(string(String),"popq(%~w)",[Name]).
-  
+
 translate_instruction(NotFound,_) :- format("cannot translate assembly instruction: ~w~n",[NotFound]), !, fail.
 
 push_all_registers([],
@@ -347,12 +348,19 @@ forth_to_asm([],
 
 % no registers used and StackOffset is 0 means the function failed
 
-forth_to_asm([num(int(ReturnLabelName)),func(Name,ArgCount,label(ReturnLabelName))|Rest],
+forth_to_asm([num(int(ReturnLabelName)),func(Name,ArgTypes,ArgCount,label(ReturnLabelName))|Rest],
              Code,
              state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
              NewState) :-
   !,
-  PrefixCode = [push('$'(ReturnLabelName)),jmp('$'(Name)),label(ReturnLabelName),push(reg(rax))],
+  cleanLabel((Name,ArgTypes),FunctionName),
+  PrefixCode = 
+    [
+      push('$'(ReturnLabelName)),
+      jmp('$'(FunctionName)),
+      label(ReturnLabelName),
+      push(reg(rax))
+    ],
   % + label
   % - label
   % - ArgCount
@@ -377,7 +385,7 @@ forth_to_asm([if(label(FailLabel),State1)|Rest],
   !,
   pick(TopOfStack,0,State),
   drop(1,Dropping,State,State1),
-  appendAll([[mov(TopOfStack,reg(rax)),test(reg(rax),reg(rax))],Dropping,[je(FailLabel)]], PrefixCode),
+  appendAll([[mov(TopOfStack,reg(rax)),test(reg(rax),reg(rax))],Dropping,[je(label(FailLabel))]], PrefixCode),
   forth_to_asm(Rest,RestCode,State1,NewState),
   append(PrefixCode,RestCode,Code).
 
@@ -389,7 +397,7 @@ forth_to_asm([then(AfterLabel,State1) | Rest],
   forth_to_asm(Rest,RestCode,State1,NewState).
   
 %tailcall at end of function
-forth_to_asm([tailcall(Name,ArgCount)],
+forth_to_asm([tailcall(Name,ArgTypes,ArgCount)],
              Code,
              State,
              NewState) :-
@@ -397,26 +405,43 @@ forth_to_asm([tailcall(Name,ArgCount)],
   move_n_to_top(ArgCount,Moving,State,State1),
   remove_all_but(ArgCount,Dropping,State1,State2),
   push_all_registers(RegisterPushingCode,State2,NewState),
-  appendAll([Moving,Dropping,RegisterPushingCode,[jmp(Name)]],Code).
+  cleanLabel((Name,ArgTypes),FunctionName),
+  appendAll(
+    [
+      Moving,
+      Dropping,
+      RegisterPushingCode,
+      [jmp(label(FunctionName))]
+    ],
+    Code).
              
-forth_to_asm([tailcall(Name,ArgCount)|Rest],
+forth_to_asm([tailcall(Name,ArgTypes,ArgCount)|Rest],
              Code,
              State,
              NewState) :-
   move_n_to_top(ArgCount,Moving,State,State1),
   remove_all_but(ArgCount,Dropping,State1,State2),
   push_all_registers(RegisterPushingCode,State2,State3),
-  appendAll([Moving,Dropping,RegisterPushingCode,[jmp('$'(Name))]],PrefixCode),
+  cleanLabel((Name,ArgTypes),CleanName),
+  appendAll(
+    [
+      Moving,
+      Dropping,
+      RegisterPushingCode,
+      [jmp(CleanName)]
+    ],
+    PrefixCode),
   forth_to_asm(Rest,RestCode,State3,NewState),
   append(PrefixCode,RestCode,Code).
 
-forth_to_asm([func(Name,ArgCount,label(ReturnLabelName))|Rest],
+forth_to_asm([func(Name,ArgTypes,ArgCount,label(ReturnLabelName))|Rest],
              Code,
              State,
              NewState) :-
   push_all_registers(RegisterPushingCode,State,StateAfterPush),
   !,
-  append(RegisterPushingCode,[jmp('$'(Name)),label(ReturnLabelName),push(reg(rax))],PrefixCode),
+  cleanLabel((Name,ArgTypes),CleanName),
+  append(RegisterPushingCode,[jmp(label(CleanName)),label(ReturnLabelName),push(reg(rax))],PrefixCode),
   state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames) = StateAfterPush,
   % - Label
   % - ArgCount
@@ -566,9 +591,17 @@ psuedo_asm_to_x64([First|Rest],[FirstString|RestStrings]) :-
 forth_to_x86(ArgCount,Forth,Assembly) :-
   start_state(ArgCount,Start),
   forth_to_asm(Forth,PseudoAssembly,Start,_EndState), !,
+  write(PseudoAssembly), nl,
   format("~n    Assembly Optimizations:~n~n"),
   assembly_optimize(20,PseudoAssembly,OptimizedPseudoAssembly), !,
-  psuedo_asm_to_x64(OptimizedPseudoAssembly,Assembly).
+  format("~n    Done Optimizing~n~n"),
+  (psuedo_asm_to_x64(OptimizedPseudoAssembly,Assembly) ->
+    format("~n    Done Translating PseudoAssembly~n~n")
+    ;
+    
+    format("~n    Unable to Translate PseudoAssembly~n~n"),
+    fail).
+    
 
 %forth_to_asm([nip(N)|Rest],Code,Rest,R,NewR) :-
   

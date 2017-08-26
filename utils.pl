@@ -1,6 +1,22 @@
-:- module(utils, [appendAll/2,nCopies/3,do_each/5,append_strings_delimited/3,allSame/1]).
+:- module(
+  utils,
+  [
+    appendAll/2,
+    nCopies/3,
+    do_each/5,
+    append_strings_delimited/3,
+    allSame/1,
+    arguments_types/2,
+    cleanLabel/2
+  ]).
 :- meta_predicate(do_each(?,?,0,?,?)).
+:- use_module(library(dcg/basics)).
 
+arguments_types([],[]) :- !.
+arguments_types([arg(Type,_Arg)|Rest],[Type|RestTypes]) :-
+  !,
+  arguments_types(Rest,RestTypes).
+  
 allSame([]) :- !.
 allSame([F|R]) :- allSame(F,R).
 allSame(_,[]) :- !.
@@ -47,3 +63,30 @@ do_each([SourceElement1|SourceRest],
   call(Template1),
   !,
   do_each(SourceRest,SourceElement,Template,ResultElement,ResultRest).
+cleanLabel([Letter|Rest]) -->
+  [Letter],
+  {char_type(Letter,alpha), !},
+  cleanLabel(Rest).
+cleanLabel(['_'|Rest]) -->
+  [','],
+  !,
+  cleanLabel(Rest).
+cleanLabel(['_','_'|Rest]) -->
+  ['_'],
+  !,
+  cleanLabel(Rest).
+cleanLabel([Encoded|Rest]) -->
+  [Letter], 
+  {
+    char_code(Letter,Code),
+    !,
+    EncodedCode is 65+(Code mod 26),
+    char_code(Encoded, EncodedCode)
+  },
+  cleanLabel(Rest).
+cleanLabel([],[],[]).
+cleanLabel(Given,CleanLabel) :-
+  format(string(String),"~w",Given),
+  string_chars(String,Chars),
+  cleanLabel(CleanChars,Chars,[]),
+  string_chars(CleanLabel,CleanChars).
