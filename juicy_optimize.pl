@@ -1,6 +1,8 @@
 :- module(juicy_optimize, [optimize/3]).
 
-commutative(op(OpName,_Type1,_Type2)) :- !, commutative(OpName).
+commutative(intrinsic(OpName,[_Type1,_Type2])) :-
+  !,
+  commutative(OpName).
 commutative(+).
 commutative('*').
 commutative('|').
@@ -55,10 +57,17 @@ optimize_step(['I',drop|Rest],Rest).
 optimize_step([num(_Num),drop|Rest],Rest).
 optimize_step([over,num(Num),Op,nip|Rest],[drop,dup,num(Num),Op|Rest]):-
   binary(Op).
-optimize_step([num(int(0)),op(+,int,int)|Rest],Rest).
-optimize_step([num(int(0)),op(-,int,int)|Rest],Rest).
-optimize_step([num(int(1)),op(*,int,int)|Rest],Rest).
-optimize_step([num(int(1)),op('/',int,int)|Rest],Rest).
+  
+optimize_step([num(int(0)),intrinsic(+,[int,int])|Rest],Rest).
+optimize_step([num(int(0)),intrinsic(-,[int,int])|Rest],Rest).
+optimize_step([num(int(1)),intrinsic(*,[int,int])|Rest],Rest).
+optimize_step([num(int(1)),intrinsic('/',[int,int])|Rest],Rest).
+
+optimize_step([num(float(0)),intrinsic(+,[float,float])|Rest],Rest).
+optimize_step([num(float(0)),intrinsic(-,[float,float])|Rest],Rest).
+optimize_step([num(float(1)),intrinsic(*,[float,float])|Rest],Rest).
+optimize_step([num(float(1)),intrinsic('/',[float,float])|Rest],Rest).
+
 optimize_step([do,loop|Rest],[drop,drop|Rest]).
 optimize_step([dup,drop|Rest],Rest).
 %optimize_step([dup,over,Op|Rest],Rest).
