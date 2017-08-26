@@ -97,21 +97,22 @@ block_buffers:
 .section .bss
 .section .text
 .globl main
-factorialTail:
+
+factorialTail_Nint_intP:
   movq   8(%rsp), %r8
   movq   $0, %r9
-  xorl   %eax, %eax
+  xorq   %rax, %rax
   cmpq   %r9, %r8
   sete   %al
   negq   %rax
   movq   %rax, %r8
   test   %rax, %rax
-  je   if2
+  je   if1
   popq   %r8
   addq   $8, %rsp
   movq   %r8, %rax
   ret
-  if2:
+  if1:
   movq   8(%rsp), %r8
   movq   $1, %r9
   subq   %r9, %r8
@@ -120,20 +121,27 @@ factorialTail:
   imulq   %r10, %r9
   movq   %r8, 8(%rsp)
   movq   %r9, 0(%rsp)
-  jmp   factorialTail
+  jmp   factorialTail_Nint_intP
 
-factorial:
+factorial_NintP:
   movq   0(%rsp), %r8
   movq   $1, %r9
   movq   %r8, 0(%rsp)
   movq   %r9, %r8
   pushq   %r8
-  jmp   factorialTail
+  jmp   factorialTail_Nint_intP
 
-main:
+main_NP:
   movq   $3, %r8
   pushq   %r8
-  jmp   factorial
+  jmp   factorial_NintP
+
+main:
+  pushq $returnLoc
+  jmp main_NP
+returnLoc:
+  movl %eax, %edi
+  call exit
 ```
 
 ## Installation
