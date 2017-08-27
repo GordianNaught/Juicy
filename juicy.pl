@@ -6,6 +6,7 @@
 :- use_module(juicy_forth_to_string, [forth_to_string/2]).
 :- use_module(juicy_inference, [infer_program/2]).
 :- use_module(utils).
+:- use_module(juicy_global).
 
 juicyMainName(Name) :-
   cleanLabel((main,[]),Name).
@@ -43,16 +44,13 @@ symbolic_program_to_asm(Parts,Result) :-
 
 forth_to_asm(Forth,Asm) :-
   forth_to_string(Forth,Code),
-  write(Code), nl,
-  symbolic_program_to_asm(Forth,Asm), nl.
+  ifVerbose((write(Code), nl)),
+  symbolic_program_to_asm(Forth,Asm).
   
 compile(String,Proper) :-
   tokenize(String,Tokens),
-  write(tokens=Tokens), nl,
   parse(Tokens,Ast),
-  write(ast=Ast), nl,
   infer_program(Ast,Definitions),
-  write(inferrences=Definitions), nl,
   compile_program(Definitions,Forths),
   do_each(Forths,Forth,juicy:forth_to_asm(Forth,Asm),Asm,Asms),
   append_strings_delimited(Asms,Code,"\n"),
@@ -61,7 +59,7 @@ compile(String,Proper) :-
     string(Proper),
     ".section .data\nep_init:~nblock_buffers:\n.section .bss\n.section .text\n.globl main\n\n~w\n~w",
     [Code,MainAsm]),
-  format(Proper),nl,nl.
+  ifVerbose((nl,nl,format(Proper),nl,nl)).
   
 repl :-
   read_line_to_string(user_input,String),
@@ -80,9 +78,7 @@ infer_file(FileName) :-
   read_file_to_string(FileName,String,[]),
   tokenize(String,Tokens),
   parse(Tokens,Ast),
-  write(infer_program(Ast, Inferrences)), nl,
-  infer_program(Ast, Inferrences),
-  write(Inferrences).
+  infer_program(Ast, Inferrences).
   
 write_to_file(string(S), OutputFile) :-
   open(OutputFile,write,Stream),
@@ -90,7 +86,6 @@ write_to_file(string(S), OutputFile) :-
   close(Stream).
   
 compile_file(InputFile, OutputFile) :-
-  write(compile_file(InputFile,OutputFile)),
   compile_file_asm_string(InputFile,AsmCode),
   write_to_file(string(AsmCode), OutputFile).
   
@@ -103,29 +98,45 @@ assemble(Assembler,SourceFile,ExecutableName) :-
   !.
 
 inputFile_check(Arguments) :-
-  ground(Arguments.inputFile)
-  ;
-  write("ERROR: An input file must be supplied.\n"),
-  write(Arguments), nl,
-  fail.
+  (ground(Arguments.inputFile) ->
+    true
+    ;
+    write("ERROR: An input file must be supplied.\n"),
+    fail).
   
 check_arguments(Arguments) :-
   inputFile_check(Arguments).
 
 % TODO: remove dictionary usage for GNU Prolog compatibility
-start([_ProgramName|Args]) :-
-  write('parsing arguments'), nl,
+start([ProgramName|Args]) :-
   parse_args(Args,Dict),
+  !,
+  (Dict.time ->
+    time(start_internal(ProgramName, Dict))
+    ;
+    start_internal(ProgramName, Dict)).
+    
+  
+start_internal(_ProgramName, Dict) :-
   Dict = args{outputFile:OutputFile,
               inputFile:InputFile,
               assembler:Assembler,
-              verbose:_Verbose},
+              time:Time,
+              verbose:Verbose},
   check_arguments(Dict),
+  (Verbose ->
+    assert_verbose
+    ;
+    true),
+  ifVerbose((write(Dict), nl)),
   format(string(AssemblyName), "~w.s", [OutputFile]),
   compile_file(InputFile,AssemblyName),
   ExecutablePath = OutputFile,
   assemble(Assembler,AssemblyName,ExecutablePath),
   format("~w created\n", [ExecutablePath]).
+  
+start_internal(_ProgramName, _Dict) :-
+  nl, format("FAILURE TO COMPILE~n").
   
 parse_argument('-o',outputFile,specifier).
 parse_argument('--output-file',outputFile,specifier).
@@ -137,9 +148,12 @@ parse_argument('-v',verbose,flag).
 parse_argument('--verbose',verbose,flag).
 parse_argument('-q',quiet,flag).
 parse_argument('--quiet',quiet,flag).
+parse_argument('-t',time,flag).
+parse_argument('--time',time,flag).
 
 parse_args(Args,ArgDict) :-
   DefaultDict = args{verbose:false,
+                     time:false,
                      outputFile:'a.out',
                      inputFile:_,
                      assembler:'gcc'},
@@ -154,7 +168,7 @@ parse_args([Specifier,Argument|Rest],StartDict,FinalDict) :-
 parse_args([Flag|Rest],StartDict,FinalDict) :-
   parse_argument(Flag,FlagName,flag),
   !,
-  NewDict = StartDict.put([FlagName=Argument]),
+  NewDict = StartDict.put([FlagName=true]),
   parse_args(Rest,NewDict,FinalDict).
 parse_args([InputFile|Rest],StartDict,FinalDict) :-
   not(ground(StartDict.inputFile)),

@@ -4,6 +4,7 @@
 :- use_module(library(clpfd)).
 :- use_module(assembly_optimize, [assembly_optimize/3]).
 :- use_module(juicy_intrinsics).
+:- use_module(juicy_global).
 
 size_of(int,8).
 size_of(float,8).
@@ -82,6 +83,7 @@ translate_instruction_name(sete,"sete").
 translate_instruction_name(neg,"negq").
 translate_instruction_name(test,"test").
 
+translate_instruction_name(movsbq,"movsbq").
 translate_instruction_name(jng,"jng").
 translate_instruction_name(jne,"jne").
 translate_instruction_name(je,"je").
@@ -136,9 +138,6 @@ push_all_registers([],
 push_all_registers([push(Register) | RestInstructions],
                    state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
                    NewState) :-
-write(push_all_registers([push(Register) | RestInstructions],
-                   state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-                   NewState)), nl,
   RegisterLocation is UtilizedRegisters - 1,
   pick(Register,RegisterLocation,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
   RegistersLeft = RegisterLocation,
@@ -289,7 +288,6 @@ move_n_to_top(N,Code,State,NewState) :-
 move_n_to_top(0,_,[],State,State) :- !.
 
 move_n_to_top(Count,StartCount,Code,State,NewState) :-
-  write(here), nl,
   Location is Count-1,
   pick(reg(R),Location,State),
   !,
@@ -299,7 +297,6 @@ move_n_to_top(Count,StartCount,Code,State,NewState) :-
   appendAll([[mov(reg(R),Target)],RestCode],Code).
   
 move_n_to_top(Count,StartCount,Code,State,NewState) :-
-  write(here), nl,
   Location is Count-1,
   pick(stack(S),Location,State),
   !,
@@ -309,7 +306,7 @@ move_n_to_top(Count,StartCount,Code,State,NewState) :-
   appendAll([[mov(stack(S),reg(rax)),mov(reg(rax),Target)],RestCode],Code).
   
 forth_to_asm(A,B,C,D) :-
-  write((A,B,C,D)),nl,
+  ifVerbose((write((A,B,C,D)),nl)),
   fail.
 
 % no registers used and StackOffset is one
@@ -579,7 +576,7 @@ forth_to_asm([nip(N)|Rest],Code,R,NewR) :-
   %write(append(StartCode,RestCode,Code)),nl.
 pretty_instructions([]) :- nl,nl.
 pretty_instructions([A|R]) :-
-  format("    ~w~n",[A]),
+  ifVerbose(format("    ~w~n",[A])),
   pretty_instructions(R).
 
 psuedo_asm_to_x64([],[]) :- !.
@@ -591,12 +588,12 @@ psuedo_asm_to_x64([First|Rest],[FirstString|RestStrings]) :-
 forth_to_x86(ArgCount,Forth,Assembly) :-
   start_state(ArgCount,Start),
   forth_to_asm(Forth,PseudoAssembly,Start,_EndState), !,
-  write(PseudoAssembly), nl,
-  format("~n    Assembly Optimizations:~n~n"),
+  ifVerbose((write(PseudoAssembly), nl)),
+  ifVerbose(format("~n    Assembly Optimizations:~n~n")),
   assembly_optimize(20,PseudoAssembly,OptimizedPseudoAssembly), !,
-  format("~n    Done Optimizing~n~n"),
+  ifVerbose(format("~n    Done Optimizing~n~n")),
   (psuedo_asm_to_x64(OptimizedPseudoAssembly,Assembly) ->
-    format("~n    Done Translating PseudoAssembly~n~n")
+    ifVerbose(format("~n    Done Translating PseudoAssembly~n~n"))
     ;
     
     format("~n    Unable to Translate PseudoAssembly~n~n"),

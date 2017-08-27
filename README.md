@@ -43,8 +43,11 @@
 - [ ] remove gcc dependecy in favor of `as` and `ld`
 - [x] fix calling convention of generated main function
 - [ ] add cuts in all places where non-determinism not needed
-- [ ] make debug output during compilation optional
+- [x] make verbose output optional
+- [ ] add verbosity levels?
+- [x] make timing of compilation optional
 - [ ] test cases
+- [ ] run tests when Makefile is ran
 - [x] make internal names of functions carry signature information
 - [ ] classes
 - [ ] methods
@@ -63,6 +66,8 @@
 - [ ] debug compilation
 - [ ] debug annotations
 - [ ] flag to remove tail recursion for debug compile traces
+- [ ] make `man` page
+- [ ] make installation move executable to bin
 
 ## Immediate Plans
 - add more built in types and intrinsics

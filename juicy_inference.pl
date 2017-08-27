@@ -2,6 +2,7 @@
 
 :- use_module(juicy_intrinsics, [intrinsic/3]).
 :- use_module(utils).
+:- use_module(juicy_global).
 
 :- dynamic(toCompile/1).
 :- dynamic(inferred/1).
@@ -18,19 +19,15 @@ arguments_context([arg(Type,Arg)|ArgR],SoFar,ArgContext) :-
   !,
   arguments_context(ArgR,[type(Arg,Type)|SoFar],ArgContext).
   
-arguments_types([],[]) :- !.
-arguments_types([arg(Type,_Arg)|Rest],[Type|RestTypes]) :-
-  !,
-  arguments_types(Rest,RestTypes).
-  
 findSignature(Name,ArgTypes,ReturnType) :-
-  signature(Name,ArgTypes,ReturnType).
+  signature(Name,ArgTypes,ReturnType),
+  !.
   
 findSignature(Name,ArgTypes,ReturnType) :-
   signature_definition(signature(Name,ArgTypes,ReturnType),Definition),
+  !,
   infer(Definition),
   signature(Name,ArgTypes,ReturnType).
-  
 
 findSignature(Name,ArgTypes,ReturnType) :-
   intrinsic(Name,ArgTypes,ReturnType),
@@ -51,13 +48,11 @@ infer_each([Element|Rest],
            ReturnType) :-
   !,
   infer(Element, Inferred, Type, Context, NextContext,ReturnType),
-  write(infer(Element, Inferred, Type, Context, NextContext,ReturnType)),nl,
   !,
-  write(infer_each(Rest,InferredRest,RestTypes,NextContext,FinalContext,ReturnType)), nl, nl,
   infer_each(Rest,InferredRest,RestTypes,NextContext,FinalContext,ReturnType).
            
-infer(Definition,_,_,_,_,_) :-
-  write(Definition), nl, fail.
+%infer(Definition,_,_,_,_,_) :-
+  %write(Definition), nl, fail.
 
 % TODO
 infer(Definition,
@@ -67,12 +62,8 @@ infer(Definition,
       _ContextAfter,
       ReturnType) :-
   Definition = definition(Name,Arguments,ReturnType,Body),
-  nl,
-  write(infer=[Name,Arguments,ReturnType]), nl, nl,
-  %write(def=Definition), sleep(3), nl,
-  %write(args=Arguments), sleep(3), nl,
+  ifVerbose((write(infer=[Name,Arguments,ReturnType]), nl)),
   arguments_context(Arguments,Context),
-  %write(infer_each(Body,InferredBody, _Types, Context, NewContext, ReturnType)), nl,
   arguments_types(Arguments,ArgumentTypes),
   infer_each(Body,
              InferredBody,
@@ -80,18 +71,11 @@ infer(Definition,
              [current(Name,ArgumentTypes,ReturnType)|Context],
              _NewContext,
              ReturnType),
-  write(here),nl,
   
-  write(arguments_types(Arguments,ArgTypes)), nl,
   arguments_types(Arguments,ArgTypes),
-  write(arguments_types(Arguments,ArgTypes)), nl,
-  %write(assert(signature_definition(signature(Name,ArgTypes,ReturnType),
-                              %definition(Name,Arguments,ReturnType,InferredBody)))), nl,
-  %assert(signature_definition(signature(Name,ArgTypes,ReturnType),
-                              %definition(Name,Arguments,ReturnType,InferredBody))),
   assert(signature(Name,ArgTypes,ReturnType)),
   assert(inferred(definition(Name,Arguments,ReturnType,InferredBody))),
-  write(done(Name)), nl.
+  ifVerbose((write(done(Name)), nl)).
                               
 
 infer(num(int(Num)),
@@ -107,12 +91,6 @@ infer(if(Condition,Body),
       Context,
       Context,
       ReturnType) :-
-  write(infer(if(Condition,Body),
-      if(InferredCondition,InferredBody),
-      void,
-      Context,
-      Context,
-      ReturnType)), nl,
   infer(Condition,InferredCondition,ConditionType,Context,NewContext,ReturnType),
   !,
   (ConditionType = bool ->
@@ -122,14 +100,13 @@ infer(if(Condition,Body),
     fail).
 
 % TODO
-infer(return(apply(var(_X),_Args)),
-  _InferredCode,
-  _ReturnType,
-  _Context,
-  _ContextAfter,
-  _FunctionReturnType) :-
-      
-  write("uninplemented\n"),fail.
+%infer(return(apply(var(_X),_Args)),
+  %_InferredCode,
+  %_ReturnType,
+  %_Context,
+  %_ContextAfter,
+  %_FunctionReturnType) :-
+  %write("uninplemented\n"),fail.
   
       
 infer(return(Expr),
@@ -166,7 +143,6 @@ infer(apply(var(X),Args),
       ContextAfter,
       FunctionReturnType) :-
   infer_each(Args,InferredArgs,ArgTypes,Context,ContextAfter,FunctionReturnType),
-  write(apply), nl,
   (
     find(type(X,XType),Context) ->
       (
@@ -182,8 +158,6 @@ infer(apply(var(X),Args),
     ;
     %apply function 
     findall(s(N,A,R),signature(N,A,R),S),
-    write(S),nl,
-    write(findSignature(X,ArgTypes,Type)), nl,
     findSignature(X,ArgTypes,Type) ->
       InferredCode = apply(var(X), InferredArgs), !
     ;
@@ -195,6 +169,12 @@ infer(apply(var(X),Args),
         format("unable to infer return type of function for recursive call, try starting with base case\n"),
         fail
     ), !
+    ;
+    format(
+      "unable to find signature for function `~w` with arguments of types ~w~n",
+    [X,ArgTypes]),
+    !,
+    fail
     %;
     %findall(s(N,A,R),signature(N,A,R),S),
     %write(S),nl,
@@ -251,11 +231,12 @@ infer_program(Definitions, Inferrences) :-
   retractall(signature_definition(_,_)),
   retractall(inferred(_)),
   partition(Definitions,Definition,groundDefinition(Definition), GroundDefinitions, NongroundDefinitions),
-  write(partition(Definitions,Definition,groundDefinition(Definition), GroundDefinitions, NongroundDefinitions)), nl,
   catalog_ground(GroundDefinitions),
   catalog_nonground(NongroundDefinitions),
   infer_with_each(GroundDefinitions),
   get_inferred(Inferrences),
-  nl,nl,
-  perform_each(Inferrences,definition(Name,Args,R,_),format("~w ~w~w\n",[R,Name,Args])).
+  perform_each(
+    Inferrences,
+    definition(Name,Args,R,_),
+    ifVerbose(format("~w ~w~w\n",[R,Name,Args]))).
   

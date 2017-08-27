@@ -1,4 +1,5 @@
 :- module(juicy_optimize, [optimize/3]).
+:- use_module(juicy_global).
 
 commutative(intrinsic(OpName,[_Type1,_Type2])) :-
   !,
@@ -36,7 +37,7 @@ optimize_step(
   [tailcall(Name,Types,2)|Rest]
 ).
 optimize_step(
-  ['2dup',swap,tailcall(Name,Types,,2)|Rest],
+  ['2dup',swap,tailcall(Name,Types,2)|Rest],
   [swap,tailcall(Name,Types,2)|Rest]
 ).
 optimize_step(
@@ -102,11 +103,11 @@ optimize_pass([S|R],[S|R1]) :-
   optimize_pass(R,R1).
 
 optimize(0,Given,Given) :-
-  write(optimization=Given), nl,
+  ifVerbose((write(optimization=Given), nl)),
   !.
 optimize(Level,Given,Result) :-
   NewLevel is Level - 1,
-  write(optimization=Given), nl,
+  ifVerbose((write(optimization=Given), nl)),
   optimize_pass(Given,Intermediate),
   (Intermediate == Given ->
     Result = Intermediate

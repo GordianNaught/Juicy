@@ -1,4 +1,5 @@
 :- module(assembly_optimize, [assembly_optimize/3]).
+:- use_module(juicy_global).
 
 optimize_step([mov(A,A)|Rest],Rest).
 optimize_step([mov(A,B),mov(B,A)|Rest],[mov(A,B)|Rest]) :-
@@ -19,11 +20,11 @@ optimize_pass([S|R],[S|R1]) :-
   optimize_pass(R,R1).
 
 assembly_optimize(0,Given,Given) :-
-  write(optimization=Given), nl,
+  ifVerbose((write(optimization=Given), nl)),
   !.
 assembly_optimize(Level,Given,Result) :-
   NewLevel is Level - 1,
-  write(optimization=Given), nl,
+  ifVerbose((write(optimization=Given), nl)),
   optimize_pass(Given,Intermediate),
   (Intermediate == Given ->
     Result = Intermediate

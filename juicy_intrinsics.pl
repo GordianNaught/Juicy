@@ -1,5 +1,47 @@
 :- module(juicy_intrinsics, [intrinsic/3,intrinsic_instructions/4,intrinsic_instructions/3]).
 
+intrinsic(float,[char],float).
+intrinsic(float,[int],float).
+intrinsic(float,[float],float).
+intrinsic(float,[float],float).
+
+
+intrinsic(int,[char],int).
+intrinsic(int,[float],int).
+intrinsic(int,[int],int).
+
+intrinsic(char,[int],char).
+intrinsic(char,[float],char).
+intrinsic(char,[char],char).
+
+intrinsic(byte,[int],byte).
+intrinsic(byte,[float],byte).
+intrinsic(byte,[char],byte).
+
+intrinsic(byte,[ascii],byte).
+
+intrinsic(ascii,[byte],ascii).
+
+intrinsic(emit,[ascii],ascii).
+
+intrinsic(+,[byte,byte],byte).
+intrinsic(-,[byte,byte],byte).
+intrinsic(*,[byte,byte],byte).
+intrinsic('|',[byte,byte],byte).
+intrinsic('/',[byte,byte],byte).
+intrinsic('%',[byte,byte],byte).
+intrinsic('<<',[byte,byte],byte).
+intrinsic('>>',[byte,byte],byte).
+
+intrinsic('==',[byte,byte],byte).
+intrinsic('!=',[byte,byte],byte).
+intrinsic('>',[byte,byte],byte).
+intrinsic('<',[byte,byte],byte).
+intrinsic('<=',[byte,byte],byte).
+intrinsic('>=',[byte,byte],byte).
+
+
+intrinsic(*,[byte,byte],byte).
 
 intrinsic(+,[int,int],int).
 intrinsic(-,[int,int],int).
@@ -25,7 +67,37 @@ compSetInstruction('<',setlt).
 compSetInstruction('==',sete).
 compSetInstruction('!=',setne).
 
-intrinsic_instructions(intrinsic(Name,[ArgumentType]),_Target,_Source) :-
+intrinsic_instructions(
+  intrinsic(emit,[ascii]),
+  Target,
+  [
+    movbl(Target,reg(edi)),
+    call(putchar)
+  ]).
+
+intrinsic_instructions(
+  intrinsic(ascii,[byte]),
+  _Target,
+  []).
+  
+intrinsic_instructions(
+  intrinsic(byte,[ascii]),
+  _Target,
+  []).
+
+intrinsic_instructions(
+  intrinsic(byte,[int]),
+  Target,
+  [
+    mov(Target,reg(rax)),
+    xor(Target,Target),
+    movsbq(reg(al),Target)
+  ]).
+
+intrinsic_instructions(
+  intrinsic(Name,[ArgumentType]),
+  _Target,
+  _Code) :-
   format("unable to find instructions for intrinsic ~w on argument of type ~w~n",[Name,ArgumentType]),
   !,
   fail.

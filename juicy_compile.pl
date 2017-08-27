@@ -5,6 +5,7 @@
 :- use_module(library(gensym), [gensym/2]).
 :- use_module(juicy_intrinsics, [intrinsic/3]).
 :- use_module(utils).
+:- use_module(juicy_global).
 
 arguments_context(Args,ArgContext) :-
   arguments_context(Args,[],ArgContext,1).
@@ -78,7 +79,7 @@ genvar(var(gen(VarName))) :- gensym(var,VarName), !.
 genLabel(Name,label(Label)) :- gensym(Name,Label), !.
 
 compile(A,_,_,_,_,_,_,_) :-
-  write(compile(A)), nl,
+  ifVerbose((write(compile(A)), nl)),
   fail.
 
 %fix
@@ -177,7 +178,7 @@ compile(definition(Name,Arguments,ReturnType,Body),
   OffsetWithArgs is Offset + ArgCount,
   compile_each(Body,Results,FullContext,_,OffsetWithArgs,0,N,_),
   appendAll(Results,ResultsAppended),
-  format("~n    Bytecode optimizations:~n~n"),
+  ifVerbose(format("~n    Bytecode optimizations:~n~n")),
   optimize(20,ResultsAppended,OptimizedCode),
   forth_to_x86(ArgCount,OptimizedCode,Asm),
   !.
@@ -240,7 +241,6 @@ compile(apply_intrinsic(var(F),ArgTypes,ReturnType,Args),Compiled,Context,Contex
   !,
   appendAll(CompiledArgs,CompiledArgsAppended),
   append(CompiledArgsAppended,[intrinsic(F,ArgTypes)],Compiled),
-  %write(Compiled), nl,
   length(Args,ArgCount),
   %write(NewOffset is OffsetBeforeApplication - (ArgCount-1)), nl,
   NewOffset is OffsetBeforeApplication - (ArgCount-1).

@@ -2,5 +2,4 @@
 :- use_module(juicy,[start/1]).
 
 main(Arguments) :-
-  write(Arguments), nl,
-  time(start(Arguments)).
+  start(Arguments).
