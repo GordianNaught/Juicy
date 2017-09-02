@@ -386,6 +386,15 @@ forth_to_asm([if(label(FailLabel),State1)|Rest],
   forth_to_asm(Rest,RestCode,State1,NewState),
   append(PrefixCode,RestCode,Code).
 
+forth_to_asm([drop|Rest],
+             Code,
+             State,
+             NewState) :-
+  !,
+  drop(1,Dropping,State,State1),
+  forth_to_asm(Rest,RestCode,State1,NewState),
+  append(Dropping,RestCode,Code).
+
 forth_to_asm([then(AfterLabel,State1) | Rest],
              [AfterLabel | RestCode],
              _State,
