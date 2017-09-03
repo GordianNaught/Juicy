@@ -120,6 +120,19 @@ intrinsic_instructions(
   format("unable to find instructions for intrinsic ~w on argument of type ~w~n",[Name,ArgumentType]),
   !,
   fail.
+  
+% intrinsic_instructions/4 is used to implement an
+% intrinsic function that takes 2 arguments.
+
+% The two arguments are suppled on the SOURCE_REGISTER
+% and DESTINATION_REGISTER, but the result overwrites
+% the value in the DESTINATION_REGISTER.
+
+% intrinsic_instructions(FUNCTION_NAME,
+%                        ARGUMENT_TYPES,
+%                        SOURCE_REGISTER,
+%                        DESTINATION_REGISTER,
+%                        CODE_TO_EMIT).
 intrinsic_instructions(intrinsic(+,[int,int]),Source,Destination,[add(Source,Destination)]) :- !.
 
 intrinsic_instructions(
@@ -136,18 +149,6 @@ intrinsic_instructions(
    !,
    ConstructedPart =.. [CompInstruction,reg(al)].
    
-% intrinsic_instructions/4 is used to implement an
-% intrinsic function that takes 2 arguments.
-
-% The two arguments are suppled on the SOURCE_REGISTER
-% and DESTINATION_REGISTER, but the result overwrites
-% the value in the DESTINATION_REGISTER.
-
-% intrinsic_instructions(FUNCTION_NAME,
-%                        ARGUMENT_TYPES,
-%                        SOURCE_REGISTER,
-%                        DESTINATION_REGISTER,
-%                        CODE_TO_EMIT).
 intrinsic_instructions(
   intrinsic(+,[float,float]),
   Source,
