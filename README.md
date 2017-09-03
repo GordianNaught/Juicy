@@ -29,6 +29,9 @@
   * [Inferrence](#inferrence)
   * [Compilation](#compilation)
 
+
+For other information not in this README, such as how to contribute, please see the [Wiki](https://github.com/GordianNaught/Juicy/wiki).
+
 ## Current Status
 - [x] parser
 - [x] type inferrence
