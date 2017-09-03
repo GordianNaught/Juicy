@@ -1,5 +1,9 @@
 :- module(juicy_intrinsics, [intrinsic/3,intrinsic_instructions/4,intrinsic_instructions/3]).
 
+% intrinsic/3 is used to tell the inference engine
+% the signature of an existing intrinsic function.
+
+% intrinsic(FUNCTION_NAME, ARGUMENT_TYPES, RETURN_TYPE).
 intrinsic(float,[char],float).
 intrinsic(float,[int],float).
 intrinsic(float,[float],float).
@@ -66,9 +70,6 @@ intrinsic('>=',[int,int],bool).
 intrinsic('==',[int,int],bool).
 intrinsic('!=',[int,int],bool).
 
-%define_intrinsic(chr,[int],
-%intrinsic_compilAe(intrinsic(signature(
-
 compSetInstruction('>=',setge).
 compSetInstruction('>',setgt).
 compSetInstruction('<=',setle).
@@ -76,6 +77,15 @@ compSetInstruction('<',setlt).
 compSetInstruction('==',sete).
 compSetInstruction('!=',setne).
 
+% intrinsic_instructions/3 is used to implement an
+% intrinsic function that takes 1 arguments.
+
+% The result is output into the same register that
+% is input as the argument (TARGET_REGISTER).
+
+% intrinsic_instructions(intrinsic(FUNCTION_NAME,ARGUMENT_TYPES),
+%                        TARGET_REGISTER,
+%                        CODE_TO_EMIT)
 intrinsic_instructions(
   intrinsic(emit,[ascii]),
   Target,
@@ -125,6 +135,19 @@ intrinsic_instructions(
    compSetInstruction(Comp,CompInstruction),
    !,
    ConstructedPart =.. [CompInstruction,reg(al)].
+   
+% intrinsic_instructions/4 is used to implement an
+% intrinsic function that takes 2 arguments.
+
+% The two arguments are suppled on the SOURCE_REGISTER
+% and DESTINATION_REGISTER, but the result overwrites
+% the value in the DESTINATION_REGISTER.
+
+% intrinsic_instructions(FUNCTION_NAME,
+%                        ARGUMENT_TYPES,
+%                        SOURCE_REGISTER,
+%                        DESTINATION_REGISTER,
+%                        CODE_TO_EMIT).
 intrinsic_instructions(
   intrinsic(+,[float,float]),
   Source,
