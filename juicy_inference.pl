@@ -83,7 +83,7 @@ infer(num(int(Num)),
       int,
       Context,
       Context,
-      _Return).
+      _Return) :- !.
 
 infer(if(Condition,Body),
       if(InferredCondition,InferredBody),
@@ -91,6 +91,7 @@ infer(if(Condition,Body),
       Context,
       Context,
       ReturnType) :-
+  !,
   infer(Condition,InferredCondition,ConditionType,Context,NewContext,ReturnType),
   !,
   (ConditionType = bool ->
@@ -115,6 +116,7 @@ infer(return(Expr),
       Context,
       Context,
       FunctionReturnType) :-
+  !,
   infer(Expr,InferredExpr,ExprReturnType,Context,_ContextAfter,FunctionReturnType),
   !,
   (ExprReturnType = FunctionReturnType ->
@@ -142,6 +144,7 @@ infer(apply(var(X),Args),
       Context,
       ContextAfter,
       FunctionReturnType) :-
+  !,
   infer_each(Args,InferredArgs,ArgTypes,Context,ContextAfter,FunctionReturnType),
   (
     find(type(X,XType),Context) ->
@@ -181,6 +184,29 @@ infer(apply(var(X),Args),
     %format("unable to resolve ~w for arguments of types ~w\n", [X, ArgTypes]),
     %fail
   ).
+
+infer(definition(Name,Arguments,ReturnType,Body),
+      InferredCode,
+      Type,
+      Context,
+      ContextAfter,
+      FunctionReturnType) :-
+  !,
+  format("Unable to infer definition of `~w'.\n",[Name]),
+  !,
+  fail.
+
+infer(Ast,
+      InferredCode,
+      Type,
+      Context,
+      ContextAfter,
+      FunctionReturnType) :-
+  !,
+  Ast =.. [StatementType | _],
+  format("Unable to infer `~w' expression/statement.\n", [StatementType]),
+  !,
+  fail.
 
 partition(Group, Element, Predicate, Compatible, InCompatible) :-
   copy_term((Element,Predicate),(SatisfactoryElement,SatisfactoryPredicate)),
