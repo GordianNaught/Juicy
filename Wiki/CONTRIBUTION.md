@@ -1,6 +1,6 @@
 # Contribution
 This project is under the GPL 3.0 license.
-The full license text can be found [here](LICENSE.md).
+The full license text can be found [here](/LICENSE.md).
 
 ## Intrinsic Functions
 Many intrinsic functions are in need of implementation.
