@@ -40,6 +40,15 @@ intrinsic('<',[byte,byte],byte).
 intrinsic('<=',[byte,byte],byte).
 intrinsic('>=',[byte,byte],byte).
 
+intrinsic('index',[generic(vector,[T]),int],T).
+intrinsic('length',[generic(vector,[T])],T).
+
+sizeof(bit,1).
+sizeof(byte,8).
+sizeof(ascii,8).
+sizeof(char,32).
+sizeof(int,64).
+sizeof(float,64).
 
 intrinsic(*,[byte,byte],byte).
 
