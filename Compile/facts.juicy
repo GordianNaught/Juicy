@@ -1,0 +1,92 @@
+/* this program emits some
+ * numbers and their factorials
+ * left padded for easy reading
+ */
+byte main() {
+  facts(20);
+  return byte(0);
+}
+
+facts(n) = facts(0,n);
+
+facts(current, last) {
+  numberPad = digitCount(last,10);
+  factorialPad = digitCount(fact(last),10);
+  facts(current,last,numberPad,factorialPad);
+  return 1;
+}
+
+facts(current, last, numberPad, factorialPad) {
+  leftPadEmit(current, numberPad, ascii(32));
+  space();
+  leftPadEmit(fact(current), factorialPad, ascii(46));
+  nl();
+  if current == last {
+    return 1;
+  }
+  facts(current+1,last,numberPad,factorialPad);
+  return 1;
+}
+
+leftPadEmit(x, size, character) {
+  digits = digitCount(x,10);
+  if digits < size {
+    charCount = size-digits;
+    emitN(charCount,character);
+    emit(x);
+    return 1;
+  }
+  emit(x);
+  return 1;
+}
+
+emitN(count,thing) {
+  if count == 0 {
+    return 1;
+  }
+  emit(thing);
+  return emitN(count-1,thing);
+}
+
+digitCount(n, base) {
+  if n == 0 {
+    return 1;
+  }
+  return digitCountTail(n,base,0);
+}
+
+digitCountTail(n, base, acc) {
+  if n == 0 {
+    return acc;
+  }
+  return digitCountTail(n/base,base,1+acc);
+}
+  
+fact(n) = factTail(n,1);
+
+factTail(n,acc) {
+  if n == 0 {
+    return acc;
+  }
+  return factTail(n-1,n*acc);
+}
+
+space() = emit(ascii(32));
+
+nl() = emit(ascii(10));
+
+ascii(int n) {
+  return ascii(byte(n));
+}
+
+emit(int n) {
+  if (n<10) {
+    emit(ascii(n+48));
+    return 1;
+  }
+  shiftr = n/10;
+  lowest = n - (10 * shiftr);
+  emit(shiftr);
+  emit(ascii(lowest+48));
+  return 1;
+}
