@@ -80,7 +80,7 @@ ascii(int n) {
 }
 
 emit(int n) {
-  if (n<10) {
+  if n < 10 {
     emit(ascii(n+48));
     return 1;
   }
