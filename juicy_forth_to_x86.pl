@@ -67,6 +67,7 @@ translate_location(Atom, String) :-
   !,
   format(string(String), "~w", Atom).
 
+translate_instruction_name(call,"call").
 translate_instruction_name(fst,"fst").
 translate_instruction_name(fadd,"fadd").
 translate_instruction_name(fmul,"fmul").
@@ -96,6 +97,8 @@ translate_instruction_name(add,"addq").
 translate_instruction_name(sub,"subq").
 translate_instruction_name(idiv,"idivq").
 translate_instruction_name(mov,"movq").
+translate_instruction_name(movsbl,"movsbl").
+translate_instruction_name(xorl,"xorl").
 translate_instruction_name(xor,"xorq").
 translate_instruction_name(sarl,"sarlq").
 translate_instruction_name(sarr,"sarrq").

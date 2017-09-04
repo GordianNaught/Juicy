@@ -90,8 +90,11 @@ intrinsic_instructions(
   intrinsic(emit,[ascii]),
   Target,
   [
-    movbl(Target,reg(edi)),
+    mov(Target,reg(rax)),
+    xor(reg(rdi),reg(rdi)),
+    movsbl(reg(al),reg(edi)),
     call(putchar)
+    %movsbq(reg(al),Target)
   ]).
 
 intrinsic_instructions(
@@ -155,12 +158,20 @@ intrinsic_instructions(
   Destination,
   [fld(Source),fld(Destination),fadd(reg(st1),reg(st0)),fst(Destination)]) :- !.
 intrinsic_instructions(intrinsic(-,[int,int]),Source,Destination,[sub(Source,Destination)]) :- !.
-intrinsic_instructions(intrinsic(*,[int,int]),Source,Destination,[imul(Source,Destination)]) :- !.
+intrinsic_instructions(
+  intrinsic(*,[int,int]),
+  Source,
+  Destination,
+  [
+    mov(Destination,reg(rax)),
+    imul(Source),
+    mov(reg(rax),Destination)
+  ]) :- !.
 intrinsic_instructions(
   intrinsic(/,[int,int]),
   Source,
   Destination,
-  [xorr(reg(rdx),reg(rdx)),mov(Destination,reg(rax)),idiv(Source),mov(reg(rax),Destination)]) :- !.
+  [xor(reg(rdx),reg(rdx)),mov(Destination,reg(rax)),idiv(Source),mov(reg(rax),Destination)]) :- !.
 intrinsic_instructions(
   intrinsic('%',[int,int]),
   Source,

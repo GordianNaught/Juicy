@@ -185,6 +185,14 @@ infer(apply(var(X),Args),
     %fail
   ).
 
+infer(assign(var(X),Expr),
+      assign(var(X),ExprInferred),
+      Type,
+      Context,
+      [type(X,Type)|Context1],
+      FunctionReturnType) :-
+  infer(Expr,ExprInferred,Type,Context,Context1,FunctionReturnType).
+
 infer(definition(Name,Arguments,ReturnType,Body),
       InferredCode,
       Type,
