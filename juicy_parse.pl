@@ -88,8 +88,9 @@ expr(E) --> value(E).
 value(num(N)) --> [num(N)].
 value(V) --> variable(V).
 value(Expr) --> ['('], expr(Expr), [')'].
-value(index(Var,I)) --> variable(Var), ['['], expr(I), [']'].
-value(index(Expr,I)) -->
+value(apply(var(index),[Var,I])) -->
+  variable(Var), ['['], expr(I), [']'].
+value(apply(var(index),[Expr,I])) -->
   ['('], expr(Expr), [')'], ['['], expr(I), [']'].
 value(array([])) --> ['['], [']'].
 value(array([Element|Rest])) -->
