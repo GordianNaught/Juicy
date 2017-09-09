@@ -357,7 +357,7 @@ forth_to_asm([num(int(ReturnLabelName)),func(Name,ArgTypes,ArgCount,label(Return
   PrefixCode = 
     [
       push('$'(ReturnLabelName)),
-      jmp('$'(FunctionName)),
+      jmp(label(FunctionName)),
       label(ReturnLabelName),
       push(reg(rax))
     ],
