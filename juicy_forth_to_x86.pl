@@ -561,7 +561,6 @@ forth_to_asm([func(Name,ArgTypes,ArgCount,FRC,label(ReturnLabelName))|Rest],
              State,
              NewState,
              RC) :-
-  write(FUNC), nl,
   push_all_registers(RegisterPushingCode,State,StateAfterPush),
   !,
   cleanLabel((Name,ArgTypes),CleanName),

@@ -192,7 +192,7 @@ compile(definition(Name,Arguments,ReturnType,ReturnCount,Body),
 % higher order funcall
 % no assignment in args
 % checked by not allowing extra stack shifting
-compile(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
+compile(apply(var(F),Args,ReturnCount),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
   findLocation(F,Context,_),
   append(Args,[var(F)],Parts),
   compile_each(Parts,CompiledParts,Context,Context,Offset,OffsetBeforeApplication,N,ArgTypes),
@@ -290,39 +290,6 @@ compile(apply_intrinsic(var(F),ArgTypes,ReturnType,ReturnCount,Args),
 compile(identity(X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
   compile((X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType).
 
-% regular tail funcall
-% no assignment in args
-% checked by not allowing extra stack shifting
-tail(apply(var(F),Args,ReturnCount),
-     Compiled,
-     Context,
-     Context,
-     Offset,
-     NewOffset,
-     N,
-     ReturnType) :-
-
-  compile_each(
-    Args,
-    CompiledArgs,
-    Context,
-    Context,
-    Offset,
-    OffsetBeforeApplication,
-    N,
-    ArgTypes),
-  !,
-  findFunction(signature(F,ArgTypes,ReturnType,ReturnCount),Context),
-  appendAll(CompiledArgs,CompiledWithoutFuncall),
-  length(Args,ArgCount),
-  appendAll(
-    [
-      CompiledWithoutFuncall,
-      [tailcall(F,ArgTypes,ArgCount,ReturnCount)]
-    ],
-    Compiled),
-  NewOffset is OffsetBeforeApplication-(ArgCount-(ReturnCount-1)).
-  
 % regular funcall
 compile(apply(var(F),Args,ReturnCount),
         Compiled,
@@ -427,7 +394,7 @@ compile(return(apply(F,A,RC)),
         Type) :-
   !,
   tail(apply(F,A,RC),Compiled,Context,NewContext,Offset,_NewOffset,LoopCount,Type),
-  getCurrentSignature(signature(Name,_,NeededReturnType,CRC),Context),
+  getCurrentSignature(signature(Name,_,NeededReturnType,_CRC),Context),
   (NeededReturnType \= Type ->
      format("type `~w' does not match expected return type of `~w' for function `~w'~n",
             [Type,NeededReturnType,Name]),
@@ -536,6 +503,39 @@ compile_program(Definitions,Codes) :-
   %NewOffset is Offset + 1.
 
 
+% regular tail funcall
+% no assignment in args
+% checked by not allowing extra stack shifting
+tail(apply(var(F),Args,ReturnCount),
+     Compiled,
+     Context,
+     Context,
+     Offset,
+     NewOffset,
+     N,
+     ReturnType) :-
+
+  compile_each(
+    Args,
+    CompiledArgs,
+    Context,
+    Context,
+    Offset,
+    OffsetBeforeApplication,
+    N,
+    ArgTypes),
+  !,
+  findFunction(signature(F,ArgTypes,ReturnType,ReturnCount),Context),
+  appendAll(CompiledArgs,CompiledWithoutFuncall),
+  length(Args,ArgCount),
+  appendAll(
+    [
+      CompiledWithoutFuncall,
+      [tailcall(F,ArgTypes,ArgCount,ReturnCount)]
+    ],
+    Compiled),
+  NewOffset is OffsetBeforeApplication-(ArgCount-(ReturnCount-1)).
+  
 
 
 
