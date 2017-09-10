@@ -1,7 +1,7 @@
 :- module(juicy_compile, [compile_program/2]).
 
 :- use_module(juicy_optimize, [optimize/3]).
-:- use_module(juicy_forth_to_x86, [forth_to_x86/3]).
+:- use_module(juicy_forth_to_x86, [forth_to_x86/4]).
 :- use_module(library(gensym), [gensym/2]).
 :- use_module(juicy_intrinsics, [intrinsic/3]).
 :- use_module(utils).
@@ -14,7 +14,10 @@ arguments_context([],SoFar,SoFar,_) :- !.
 arguments_context([arg(Type,Arg)|ArgR],SoFar,ArgContext,N) :-
   I is 0 - N,
   K is N + 1,
-  arguments_context(ArgR,[type(Arg,Type),assign(Arg,I)|SoFar],ArgContext,K).
+  arguments_context(ArgR,
+                    [type(Arg,Type),assign(Arg,I)|SoFar],
+                    ArgContext,
+                    K).
 
 findLocation(X,[assign(X,L)|_],L) :- !.
 findLocation(X,[_|R],L) :-
@@ -61,8 +64,10 @@ max(A,B,A) :- A>=B, !.
 max(_,B,B).
 % signature(Name,ArgTypes,ReturnType)
 
-findFunction(signature(Name,ArgTypes,ReturnType),[signature(Name,ArgTypes,ReturnType)|_]) :- !.
-findFunction(signature(Name,ArgTypes,_),[]) :-
+findFunction(
+  signature(Name,ArgTypes,ReturnType,ReturnCount),
+  [signature(Name,ArgTypes,ReturnType,ReturnCount)|_]) :- !.
+findFunction(signature(Name,ArgTypes,_,_),[]) :-
   !,
   format("unable to find function `~w' with argument types ~w~n",[Name,ArgTypes]),
   fail.
@@ -162,7 +167,7 @@ compile(if(Condition,Body),Code,Context,Context,Offset,Offset,N,void) :-
 
 compile('I',['I'],C,C,O,NO,_,int) :- NO is O + 1.
 
-compile(definition(Name,Arguments,ReturnType,Body),
+compile(definition(Name,Arguments,ReturnType,ReturnCount,Body),
         [function(Name,ArgumentTypes,Asm)],
         StartContext,
         StartContext,
@@ -172,15 +177,16 @@ compile(definition(Name,Arguments,ReturnType,Body),
         void) :-
   arguments_types(Arguments,ArgumentTypes),
   arguments_context(Arguments,ArgContext),
-  get_signatures([definition(Name,Arguments,ReturnType,Body)],[Signature]),
+  get_signatures([definition(Name,Arguments,ReturnType,ReturnCount,Body)],
+                 [Signature]),
   appendAll([ArgContext,[currentSignature(Signature)],StartContext],FullContext),
   length(Arguments,ArgCount),
   OffsetWithArgs is Offset + ArgCount,
-  compile_each(Body,Results,FullContext,_,OffsetWithArgs,0,N,_),
+  compile_each(Body,Results,FullContext,_,OffsetWithArgs,_EndOffset,N,_),
   appendAll(Results,ResultsAppended),
   ifVerbose(format("~n    Bytecode optimizations:~n~n")),
   optimize(20,ResultsAppended,OptimizedCode),
-  forth_to_x86(ArgCount,OptimizedCode,Asm),
+  forth_to_x86(ArgCount,OptimizedCode,Asm,ReturnCount),
   !.
         
 % higher order funcall
@@ -191,15 +197,22 @@ compile(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnTyp
   append(Args,[var(F)],Parts),
   compile_each(Parts,CompiledParts,Context,Context,Offset,OffsetBeforeApplication,N,ArgTypes),
   !,
-  getFuncType(F,Context,func(ArgTypes,ReturnType)),
+  getFuncType(F,Context,func(ArgTypes,ReturnType,ReturnCount)),
   appendAll(CompiledParts,CompiledWithoutExec),
   length(Args,ArgCount),
   genLabel(F,Label),
   appendAll([[num(int(Label))],CompiledWithoutExec,[execute(ArgCount,Label)]],Compiled),
-  NewOffset is OffsetBeforeApplication-ArgCount.
+  NewOffset is (ReturnCount-1)+(OffsetBeforeApplication-ArgCount).
 
 % higher order funcall
-compile(apply(var(F),Args),Compiled,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
+compile(apply(var(F),Args,ReturnCount),
+        Compiled,
+        Context,
+        NewContext,
+        Offset,
+        NewOffset,
+        N,
+        ReturnType) :-
   findLocation(F,Context,_),
   !,
   % fix
@@ -210,40 +223,61 @@ compile(apply(var(F),Args),Compiled,Context,NewContext,Offset,NewOffset,N,Return
   length(Args,ArgCount),
   length(ArgTypes,ArgCount),
   !,
-  getFuncType(F,Context,func(ArgTypes,ReturnType)),
+  getFuncType(F,Context,func(ArgTypes,ReturnType,ReturnCount)),
   appendAll(CompiledBeforeFuncCallParts,CompiledBeforeFuncCall),
   append(CompiledBeforeFuncCall,[execute],Compiled),
-  NewOffset is OffsetBeforeApplication-ArgCount.
+  NewOffset is (ReturnCount-1)+(OffsetBeforeApplication-ArgCount).
 
 % regular funcall
 % no assignment in args
 % checked by not allowing extra stack shifting
-compile(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
+compile(apply(var(F),Args,ReturnCount),
+        Compiled,
+        Context,
+        Context,
+        Offset,
+        NewOffset,
+        N,
+        ReturnType) :-
   genLabel(F,LabelName),
   compile_each([push(LabelName)|Args],CompiledArgs,Context,Context,Offset,OffsetBeforeApplication,N,[_Label|ArgTypes]),
   !,
-  findFunction(signature(F,ArgTypes,ReturnType),Context),
+  findFunction(signature(F,ArgTypes,ReturnType,ReturnCount),Context),
   appendAll(CompiledArgs,CompiledWithoutFuncall),
   length(Args,ArgCount),
   appendAll(
     [
       CompiledWithoutFuncall,
-      [func(F,ArgTypes,ArgCount,LabelName)]
+      [func(F,ArgTypes,ArgCount,ReturnCount,LabelName)]
     ],
     Compiled),
-  NewOffset is OffsetBeforeApplication-(ArgCount).
+  NewOffset is OffsetBeforeApplication-(ArgCount-(ReturnCount-1)).
 
 % intrinsic funcall
 % no assignment in args
 % checked by not allowing extra stack space
-compile(apply_intrinsic(var(F),ArgTypes,ReturnType,Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
-  compile_each(Args,CompiledArgs,Context,Context,Offset,OffsetBeforeApplication,N,ArgTypes),
+compile(apply_intrinsic(var(F),ArgTypes,ReturnType,ReturnCount,Args),
+        Compiled,
+        Context,
+        Context,
+        Offset,
+        NewOffset,
+        N,
+        ReturnType) :-
+  compile_each(Args,
+               CompiledArgs,
+               Context,
+               Context,
+               Offset,
+               OffsetBeforeApplication,
+               N,
+               ArgTypes),
   !,
   appendAll(CompiledArgs,CompiledArgsAppended),
-  append(CompiledArgsAppended,[intrinsic(F,ArgTypes)],Compiled),
+  append(CompiledArgsAppended,[intrinsic(F,ArgTypes,ReturnCount)],Compiled),
   length(Args,ArgCount),
   %write(NewOffset is OffsetBeforeApplication - (ArgCount-1)), nl,
-  NewOffset is OffsetBeforeApplication - (ArgCount-1).
+  NewOffset is OffsetBeforeApplication - (ArgCount-ReturnCount).
   
 % wrapper used to throw off compiler pattern matching
 compile(identity(X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
@@ -252,7 +286,7 @@ compile(identity(X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
 % regular tail funcall
 % no assignment in args
 % checked by not allowing extra stack shifting
-tail(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
+tail(apply(var(F),Args,ReturnCount),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
   compile_each(
     Args,
     CompiledArgs,
@@ -268,14 +302,21 @@ tail(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) 
   length(Args,ArgCount),
   appendAll(
     [
-      CompiledWithoutFuncall,
-      [tailcall(F,ArgTypes,ArgCount)]
+      CompiledWithoutFuncalll,
+      [tailcall(F,ArgTypes,ArgCount,ReturnCount)]
     ],
     Compiled),
-  NewOffset is OffsetBeforeApplication-(ArgCount).
+  NewOffset is OffsetBeforeApplication-(ArgCount-(ReturnCount-1)).
   
 % regular funcall
-compile(apply(var(F),Args),Compiled,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
+compile(apply(var(F),Args,ReturnCount),
+        Compiled,
+        Context,
+        NewContext,
+        Offset,
+        NewOffset,
+        N,
+        ReturnType) :-
   assign_each(Args,Assignments,Variables),
   appendAll([Assignments,Variables],ToCompile),
   compile_each(ToCompile,CompiledBeforeFuncCallParts,Context,NewContext,Offset,OffsetBeforeApplication,N,ReturnTypes),
@@ -285,8 +326,8 @@ compile(apply(var(F),Args),Compiled,Context,NewContext,Offset,NewOffset,N,Return
   !,
   findFunction(signature(F,ArgTypes,ReturnType),Context),
   appendAll(CompiledBeforeFuncCallParts,CompiledBeforeFuncCall),
-  append(CompiledBeforeFuncCall,[func(F,ArgTypes,ArgCount)],Compiled),
-  NewOffset is OffsetBeforeApplication-(ArgCount-1).
+  append(CompiledBeforeFuncCall,[func(F,ArgTypes,ArgCount,ReturnCount)],Compiled),
+  NewOffset is OffsetBeforeApplication-(ArgCount-ReturnCount).
 
 %compile(apply(F,_Args),_Compiled,_Context,_NewContext,_Offset,_NewOffset,_N,_Type) :-
   %!,
@@ -364,7 +405,7 @@ compile(math(-,num(int(0)),Y),
 compile(return(apply(F,A)), Compiled, Context, NewContext, Offset, 0, LoopCount, Type) :-
   !,
   tail(apply(F,A),Compiled,Context,NewContext,Offset,_NewOffset,LoopCount,Type),
-  getCurrentSignature(signature(Name,_,NeededReturnType),Context),
+  getCurrentSignature(signature(Name,_,NeededReturnType,_RC),Context),
   (NeededReturnType \= Type ->
      format("type `~w' does not match expected return type of `~w' for function `~w'~n",
             [Type,NeededReturnType,Name]),
@@ -372,16 +413,35 @@ compile(return(apply(F,A)), Compiled, Context, NewContext, Offset, 0, LoopCount,
      ;
      1=1
      ).
-  
-compile(return(Expr), Compiled, Context, NewContext, Offset, 0, LoopCount, Type) :-
-  compile(Expr, CompiledExpr, Context, NewContext, Offset, NewOffset, LoopCount, Type),
-  getCurrentSignature(signature(Name,_,NeededReturnType),Context),
+
+compile(return, Compiled, Context, NewContext, Offset, 0, LoopCount, Type) :-
+  getCurrentSignature(signature(Name,_,NeededReturnType,RC),Context),
   (NeededReturnType \= Type ->
      format("type `~w' does not match expected return type of `~w' for function `~w'~n",
             [Type,NeededReturnType,Name]),
      fail
      ;
-     CopyCount is NewOffset - 1,
+     DropCount is Offset,
+     nCopies(DropCount, drop, Drops),
+     nCopies(LoopCount, unloop, Unloops),
+     appendAll([Drops,Unloops,[exit]], Compiled)).
+
+compile(return(Expr),
+        Compiled,
+        Context,
+        NewContext,
+        Offset,
+        0,
+        LoopCount,
+        Type) :-
+  compile(Expr, CompiledExpr, Context, NewContext, Offset, NewOffset, LoopCount, Type),
+  getCurrentSignature(signature(Name,_,NeededReturnType,RC),Context),
+  (NeededReturnType \= Type ->
+     format("type `~w' does not match expected return type of `~w' for function `~w'~n",
+            [Type,NeededReturnType,Name]),
+     fail
+     ;
+     CopyCount is (NewOffset - 1) + (RC-1),
      nCopies(CopyCount, nip, Nips),
      nCopies(LoopCount, unloop, Unloops),
      appendAll([CompiledExpr,Nips,Unloops,[exit]], Compiled)).
@@ -406,6 +466,11 @@ compile(assign(var(Dest),Source),
         N,
         Type) :-
   compile(Source, CompiledSource, Context, NewContext, Offset, OffsetAfterExpr, N, Type),
+  (Type \= void ->
+    true
+    ;
+    format("unable to assign void type to variable `~w'\n",[Dest]),
+    fail),
   VarIndex is 0-OffsetAfterExpr.
 
 compile(push(label(Name)),[num(int(Name))],Context,Context,Offset,NewOffset,_,int) :-
@@ -427,7 +492,10 @@ get_arg_types([arg(Type,_Name)|RestArgs],[Type|RestTypes]) :-
   get_arg_types(RestArgs,RestTypes).
   
 get_signatures([],[]) :- !.
-get_signatures([definition(Name,Args,ReturnType,_Code)|Rest],[signature(Name,ArgTypes,ReturnType)|RestSignatures]) :-
+get_signatures([
+  definition(Name,Args,ReturnType,ReturnCount,_Code)|Rest],
+  [signature(Name,ArgTypes,ReturnType,ReturnCount)|RestSignatures]) :-
+
   get_arg_types(Args,ArgTypes),
   get_signatures(Rest,RestSignatures).
 

@@ -1,6 +1,7 @@
 :- module(juicy_parse, [parse/2]).
 
 :- use_module(library(dcg/basics)).
+:- use_module(juicy_global).
 :- use_module(utils).
 
 plural_greedy(Thing,[T|Ts]) --> {E=..[Thing,T]}, E,  plural_greedy_more(Thing,Ts).
@@ -71,7 +72,8 @@ delimited_statements(Exprs) --> plural_greedy_more(statement, Exprs).
 %expr(E) --> comparison(E).
 %expr(ternary(Condition,TrueExpr,FalseExpr)) -->
   %expr(Condition), ['?'], expr(TrueExpr), [':'], expr(FalseCode).
-expr(return(Expr)) --> ['return'], !, expr(Expr).
+expr(return(Expr)) --> ['return'], expr(Expr).
+expr(return) --> ['return'].
 expr(Assignment) --> assignment(Assignment).
 expr(gen(Start,Finish,Index,Solution)) -->
   ['get'], expr(Solution),
@@ -103,4 +105,5 @@ delimited_array_element(Element) -->
 %expr(execute(F,Args)) --> 
 
 parse(Tokens,Ast) :-
-  program(Ast,Tokens,[]), !.
+  program(Ast,Tokens,[]), !,
+  ifVerbose((write('AST'=Ast),nl)).

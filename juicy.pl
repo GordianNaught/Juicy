@@ -51,6 +51,7 @@ compile(String,Proper) :-
   tokenize(String,Tokens),
   parse(Tokens,Ast),
   infer_program(Ast,Definitions),
+  ifVerbose(format("BEGIN COMPILE\n")),
   compile_program(Definitions,Forths),
   do_each(Forths,Forth,juicy:forth_to_asm(Forth,Asm),Asm,Asms),
   append_strings_delimited(Asms,Code,"\n"),

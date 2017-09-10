@@ -1,15 +1,17 @@
 :- module(juicy_inference, [infer/6,infer_program/2]).
 
-:- use_module(juicy_intrinsics, [intrinsic/3]).
+:- use_module(juicy_intrinsics, [intrinsic/4]).
 :- use_module(utils).
 :- use_module(juicy_global).
 
 :- dynamic(toCompile/1).
 :- dynamic(inferred/1).
-:- dynamic(signature/3).
+:- dynamic(signature/4).
 :- dynamic(signature_definition/2).
 
-signature(apply,[func([ArgTypes],ReturnType),ArgTypes],ReturnType).
+signature(apply,
+          [func([ArgTypes],ReturnType,ReturnCount),ArgTypes],
+          ReturnType).
 
 arguments_context(Args,ArgContext) :-
   arguments_context(Args,[],ArgContext).
@@ -19,18 +21,20 @@ arguments_context([arg(Type,Arg)|ArgR],SoFar,ArgContext) :-
   !,
   arguments_context(ArgR,[type(Arg,Type)|SoFar],ArgContext).
   
-findSignature(Name,ArgTypes,ReturnType) :-
-  signature(Name,ArgTypes,ReturnType),
+findSignature(Name,ArgTypes,ReturnType,ReturnCount) :-
+  signature(Name,ArgTypes,ReturnType,ReturnCount),
   !.
   
-findSignature(Name,ArgTypes,ReturnType) :-
-  signature_definition(signature(Name,ArgTypes,ReturnType),Definition),
+findSignature(Name,ArgTypes,ReturnType,ReturnCount) :-
+  signature_definition(
+    signature(Name,ArgTypes,ReturnType,ReturnCount),
+    Definition),
   !,
   infer(Definition),
-  signature(Name,ArgTypes,ReturnType).
+  signature(Name,ArgTypes,ReturnType,ReturnCount).
 
-findSignature(Name,ArgTypes,ReturnType) :-
-  intrinsic(Name,ArgTypes,ReturnType),
+findSignature(Name,ArgTypes,ReturnType,ReturnCount) :-
+  intrinsic(Name,ArgTypes,ReturnType,ReturnCount),
   !.
 
 find(_,[]) :- !, fail.
@@ -53,29 +57,55 @@ infer_each([Element|Rest],
            
 %infer(Definition,_,_,_,_,_) :-
   %write(Definition), nl, fail.
+  
+returnCount(NG,_) :- not(ground(NG)), !.
+returnCount(void,0) :- !.
+returnCount(_,1).
 
+infer(definition(Name,Arguments,ReturnType,InferredBody),
+      Inferred,
+      Type,
+      Context,
+      ContextAfter,
+      ReturnType) :-
+  infer(
+        definition(Name,Arguments,ReturnType,ReturnCount,InferredBody),
+        Inferred,
+        Type,
+        Context,
+        ContextAfter,
+        ReturnType).
 % TODO
 infer(Definition,
-      definition(Name,Arguments,ReturnType,InferredBody),
+      definition(Name,Arguments,ReturnType,ReturnCount,InferredBody),
       _Type,
       Context,
       _ContextAfter,
       ReturnType) :-
-  Definition = definition(Name,Arguments,ReturnType,Body),
+  Definition = definition(Name,Arguments,ReturnType,ReturnCount,Body),
   ifVerbose((write(infer=[Name,Arguments,ReturnType]), nl)),
   arguments_context(Arguments,Context),
   arguments_types(Arguments,ArgumentTypes),
+  (ground(ReturnType) ->
+    returnCount(ReturnType,ReturnCount)
+    ;
+    true),
+  write("infer each"),nl,
   infer_each(Body,
              InferredBody,
              _Types,
-             [current(Name,ArgumentTypes,ReturnType)|Context],
+             [current(Name,ArgumentTypes,ReturnType,ReturnCount)|Context],
              _NewContext,
              ReturnType),
+  write("infer each done"),nl,
   
   arguments_types(Arguments,ArgTypes),
-  assert(signature(Name,ArgTypes,ReturnType)),
-  assert(inferred(definition(Name,Arguments,ReturnType,InferredBody))),
-  ifVerbose((write(done(Name)), nl)).
+  returnCount(ReturnType,ReturnCount),
+  assert(signature(Name,ArgTypes,ReturnType,ReturnCount)),
+  assert(
+    inferred(
+      definition(Name,Arguments,ReturnType,ReturnCount,InferredBody))),
+  ifVerbose((write(done(Name,ArgTypes,ReturnType,ReturnCount)), nl)).
                               
 
 infer(num(int(Num)),
@@ -109,7 +139,22 @@ infer(if(Condition,Body),
   %_FunctionReturnType) :-
   %write("uninplemented\n"),fail.
   
-      
+infer(return,
+      return,
+      FunctionReturnType,
+      Context,
+      Context,
+      FunctionReturnType) :-
+  !,
+  (FunctionReturnType = void ->
+    find(current(Name,ArgumentTypes,FunctionReturnType,ReturnCount),
+         Context),
+    returnCount(FunctionReturnType,ReturnCount),
+    assert(signature(Name,ArgumentTypes,FunctionReturnType,ReturnCount))
+    ;
+    format("void return from non-void function\n"),
+    fail).
+
 infer(return(Expr),
       return(InferredExpr),
       FunctionReturnType,
@@ -120,8 +165,10 @@ infer(return(Expr),
   infer(Expr,InferredExpr,ExprReturnType,Context,_ContextAfter,FunctionReturnType),
   !,
   (ExprReturnType = FunctionReturnType ->
-     find(current(Name,ArgumentTypes,FunctionReturnType),Context),
-     assert(signature(Name,ArgumentTypes,FunctionReturnType))
+     find(current(Name,ArgumentTypes,FunctionReturnType,ReturnCount),
+          Context),
+     returnCount(FunctionReturnType,ReturnCount),
+     assert(signature(Name,ArgumentTypes,FunctionReturnType,ReturnCount))
      ;
      format("the return type of `~w' did not match the expected return type of `~w'\n",
             [ExprReturnType,FunctionReturnType])).
@@ -149,25 +196,35 @@ infer(apply(var(X),Args),
   (
     find(type(X,XType),Context) ->
       (
-        XType = func(ArgTypes,Type) ->
+        XType = func(ArgTypes,Type,ReturnCount) ->
           InferredCode = apply(var(X),InferredArgs)
           ;
-          findSignature(apply, [XType | ArgTypes], Type),
-          InferredCode = apply(var(apply),[var(X)|InferredArgs], Type)
+          findSignature(apply, [XType | ArgTypes], Type, ReturnCount),
+          InferredCode =
+            apply(var(apply),[var(X)|InferredArgs], Type, ReturnCount)
       )
     ;
-    intrinsic(X,ArgTypes,Type) ->
-      InferredCode = apply_intrinsic(var(X),ArgTypes,Type,InferredArgs), !
+    % intrinsic
+    intrinsic(X,ArgTypes,Type, ReturnCount) ->
+      InferredCode =
+        apply_intrinsic(var(X),ArgTypes,Type,ReturnCount,InferredArgs),
+        !
     ;
-    %apply function 
-    findall(s(N,A,R),signature(N,A,R),S),
-    findSignature(X,ArgTypes,Type) ->
-      InferredCode = apply(var(X), InferredArgs), !
+    % apply function 
+    findall(s(N,A,R,RC),signature(N,A,R,RC),S),
+    findSignature(X,ArgTypes,Type,ReturnCount) ->
+      InferredCode = apply(var(X), InferredArgs, ReturnCount), !
     ;
-    find(current(X,ArgTypes,CurrentReturnType),Context) ->
+    % recursive call
+    find(
+      current(X,
+              ArgTypes,
+              CurrentReturnType,
+              ReturnCount),
+      Context) ->
     (
       ground(CurrentReturnType) ->
-        InferredCode = apply(var(X),InferredArgs)
+        InferredCode = apply(var(X),InferredArgs,ReturnCount)
         ;
         format("unable to infer return type of function for recursive call, try starting with base case\n"),
         fail
@@ -193,23 +250,35 @@ infer(assign(var(X),Expr),
       FunctionReturnType) :-
   infer(Expr,ExprInferred,Type,Context,Context1,FunctionReturnType).
 
-infer(definition(Name,Arguments,ReturnType,Body),
+infer(definition(Name,Arguments,ReturnType,ReturnCount, Body),
       InferredCode,
       Type,
       Context,
       ContextAfter,
       FunctionReturnType) :-
   !,
-  format("Unable to infer definition of `~w'.\n",[Name]),
+  format("unable to infer definition of `~w'.\n",[Name]),
+  write(definition(Name,Arguments,ReturnType,ReturnCount, Body)),
+  nl,
   !,
   fail.
-
+infer(assign(var(Name),_Expr),
+      _InferredCode,
+      _Type,
+      _Context,
+      _ContextAfter,
+      _FunctionReturnType) :-
+  !,
+  format("unable to infer assignment to `~w'.\n", 
+         [Name]),
+  !,
+  fail.
 infer(Ast,
-      InferredCode,
-      Type,
-      Context,
-      ContextAfter,
-      FunctionReturnType) :-
+      _InferredCode,
+      _Type,
+      _Context,
+      _ContextAfter,
+      _FunctionReturnType) :-
   !,
   Ast =.. [StatementType | _],
   format("Unable to infer `~w' expression/statement.\n", [StatementType]),
@@ -241,14 +310,19 @@ catalog_nonground(NongroundDefinitions) :-
                definition(Name,Arguments,ReturnType,Body),
                (
                  arguments_types(Arguments,ArgTypes),
-                 assert(signature_definition(signature(Name,ArgTypes,ReturnType),definition(Name,Arguments,ReturnType,Body))))).
+                 returnCount(ReturnType,ReturnCount),
+                 assert(
+                   signature_definition(
+                     signature(Name,ArgTypes,ReturnType,ReturnCount),
+                     definition(Name,Arguments,ReturnType,ReturnCount,Body))))).
 
 catalog_ground(GroundDefinitions) :-
   perform_each(GroundDefinitions,
                definition(Name,Arguments,ReturnType,_Body),
                (
                  arguments_types(Arguments,ArgTypes),
-                 assert(signature(Name,ArgTypes,ReturnType)))).
+                 returnCount(ReturnType,ReturnCount),
+                 assert(signature(Name,ArgTypes,ReturnType,ReturnCount)))).
 
 infer(Definition) :-
   infer(Definition,_,_,_,_,_).
@@ -260,7 +334,7 @@ get_inferred(Inferrences) :-
   findall(Inferred,inferred(Inferred),Inferrences).
 
 infer_program(Definitions, Inferrences) :-
-  retractall(signature(_,_,_)),
+  retractall(signature(_,_,_,_)),
   retractall(call_definition(_,_)),
   retractall(signature_definition(_,_)),
   retractall(inferred(_)),
@@ -271,6 +345,6 @@ infer_program(Definitions, Inferrences) :-
   get_inferred(Inferrences),
   perform_each(
     Inferrences,
-    definition(Name,Args,R,_),
+    definition(Name,Args,R,RC,_),
     ifVerbose(format("~w ~w~w\n",[R,Name,Args]))).
   

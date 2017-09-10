@@ -10,8 +10,8 @@ commutative('|').
 commutative(&).
 commutative(and).
 commutative(or).
-monadic(func(name,_,1,_ReturnLabel)).
-binary(func(name,_,2,_ReturnLabel)).
+monadic(func(_Name,_,1,_ReturnCount,_ReturnLabel)).
+binary(func(_Name,_,2,_ReturnCount,_ReturnLabel)).
 binary(op(OpName,_Type1,_Type2)) :- !, binary(OpName).
 binary('<<').
 binary(+).

@@ -1,51 +1,51 @@
-:- module(juicy_intrinsics, [intrinsic/3,intrinsic_instructions/4,intrinsic_instructions/3]).
+:- module(juicy_intrinsics, [intrinsic/4,intrinsic_instructions/4,intrinsic_instructions/3]).
 
 % intrinsic/3 is used to tell the inference engine
 % the signature of an existing intrinsic function.
 
 % intrinsic(FUNCTION_NAME, ARGUMENT_TYPES, RETURN_TYPE).
-intrinsic(float,[char],float).
-intrinsic(float,[int],float).
-intrinsic(float,[float],float).
-intrinsic(float,[float],float).
+intrinsic(float,[char],float,1).
+intrinsic(float,[int],float,1).
+intrinsic(float,[float],float,1).
+intrinsic(float,[float],float,1).
 
 
-intrinsic(int,[char],int).
-intrinsic(int,[float],int).
-intrinsic(int,[int],int).
+intrinsic(int,[char],int,1).
+intrinsic(int,[float],int,1).
+intrinsic(int,[int],int,1).
 
-intrinsic(char,[int],char).
-intrinsic(char,[float],char).
-intrinsic(char,[char],char).
+intrinsic(char,[int],char,1).
+intrinsic(char,[float],char,1).
+intrinsic(char,[char],char,1).
 
-intrinsic(byte,[int],byte).
-intrinsic(byte,[float],byte).
-intrinsic(byte,[char],byte).
+intrinsic(byte,[int],byte,1).
+intrinsic(byte,[float],byte,1).
+intrinsic(byte,[char],byte,1).
 
-intrinsic(byte,[ascii],byte).
+intrinsic(byte,[ascii],byte,1).
 
-intrinsic(ascii,[byte],ascii).
+intrinsic(ascii,[byte],ascii,1).
 
-intrinsic(emit,[ascii],ascii).
+intrinsic(emit,[ascii],ascii,1).
 
-intrinsic(+,[byte,byte],byte).
-intrinsic(-,[byte,byte],byte).
-intrinsic(*,[byte,byte],byte).
-intrinsic('|',[byte,byte],byte).
-intrinsic('/',[byte,byte],byte).
-intrinsic('%',[byte,byte],byte).
-intrinsic('<<',[byte,byte],byte).
-intrinsic('>>',[byte,byte],byte).
+intrinsic(+,[byte,byte],byte,1).
+intrinsic(-,[byte,byte],byte,1).
+intrinsic(*,[byte,byte],byte,1).
+intrinsic('|',[byte,byte],byte,1).
+intrinsic('/',[byte,byte],byte,1).
+intrinsic('%',[byte,byte],byte,1).
+intrinsic('<<',[byte,byte],byte,1).
+intrinsic('>>',[byte,byte],byte,1).
 
-intrinsic('==',[byte,byte],byte).
-intrinsic('!=',[byte,byte],byte).
-intrinsic('>',[byte,byte],byte).
-intrinsic('<',[byte,byte],byte).
-intrinsic('<=',[byte,byte],byte).
-intrinsic('>=',[byte,byte],byte).
+intrinsic('==',[byte,byte],byte,1).
+intrinsic('!=',[byte,byte],byte,1).
+intrinsic('>',[byte,byte],byte,1).
+intrinsic('<',[byte,byte],byte,1).
+intrinsic('<=',[byte,byte],byte,1).
+intrinsic('>=',[byte,byte],byte,1).
 
-intrinsic('index',[generic(vector,[T]),int],T).
-intrinsic('length',[generic(vector,[T])],T).
+intrinsic('index',[generic(vector,[T]),int],T,1).
+intrinsic('length',[generic(vector,[T])],T,1).
 
 sizeof(bit,1).
 sizeof(byte,8).
@@ -56,19 +56,19 @@ sizeof(float,64).
 
 intrinsic(*,[byte,byte],byte).
 
-intrinsic(+,[int,int],int).
-intrinsic(-,[int,int],int).
-intrinsic(*,[int,int],int).
-intrinsic('/',[int,int],int).
-intrinsic('%',[int,int],int).
-intrinsic('<<',[int,int],int).
-intrinsic('>>',[int,int],int).
-intrinsic('<',[int,int],bool).
-intrinsic('<=',[int,int],bool).
-intrinsic('>',[int,int],bool).
-intrinsic('>=',[int,int],bool).
-intrinsic('==',[int,int],bool).
-intrinsic('!=',[int,int],bool).
+intrinsic(+,[int,int],int,1).
+intrinsic(-,[int,int],int,1).
+intrinsic(*,[int,int],int,1).
+intrinsic('/',[int,int],int,1).
+intrinsic('%',[int,int],int,1).
+intrinsic('<<',[int,int],int,1).
+intrinsic('>>',[int,int],int,1).
+intrinsic('<',[int,int],bool,1).
+intrinsic('<=',[int,int],bool,1).
+intrinsic('>',[int,int],bool,1).
+intrinsic('>=',[int,int],bool,1).
+intrinsic('==',[int,int],bool,1).
+intrinsic('!=',[int,int],bool,1).
 
 compSetInstruction('>=',setge).
 compSetInstruction('>',setgt).
@@ -87,7 +87,7 @@ compSetInstruction('!=',setne).
 %                        TARGET_REGISTER,
 %                        CODE_TO_EMIT)
 intrinsic_instructions(
-  intrinsic(emit,[ascii]),
+  intrinsic(emit,[ascii],1),
   Target,
   [
     mov(Target,reg(rax)),
@@ -98,17 +98,17 @@ intrinsic_instructions(
   ]).
 
 intrinsic_instructions(
-  intrinsic(ascii,[byte]),
+  intrinsic(ascii,[byte],1),
   _Target,
   []).
   
 intrinsic_instructions(
-  intrinsic(byte,[ascii]),
+  intrinsic(byte,[ascii],1),
   _Target,
   []).
 
 intrinsic_instructions(
-  intrinsic(byte,[int]),
+  intrinsic(byte,[int],1),
   Target,
   [
     mov(Target,reg(rax)),
@@ -117,7 +117,7 @@ intrinsic_instructions(
   ]).
 
 intrinsic_instructions(
-  intrinsic(Name,[ArgumentType]),
+  intrinsic(Name,[ArgumentType],_ReturnCount),
   _Target,
   _Code) :-
   format("unable to find instructions for intrinsic ~w on argument of type ~w~n",[Name,ArgumentType]),
@@ -131,15 +131,19 @@ intrinsic_instructions(
 % and DESTINATION_REGISTER, but the result overwrites
 % the value in the DESTINATION_REGISTER.
 
-% intrinsic_instructions(FUNCTION_NAME,
-%                        ARGUMENT_TYPES,
+% intrinsic_instructions(intrinsic(FUNCTION_NAME,
+          %                        ARGUMENT_TYPES,
+%                                  RETURNCOUNT),
 %                        SOURCE_REGISTER,
 %                        DESTINATION_REGISTER,
 %                        CODE_TO_EMIT).
-intrinsic_instructions(intrinsic(+,[int,int]),Source,Destination,[add(Source,Destination)]) :- !.
+intrinsic_instructions(intrinsic(+,[int,int],1),
+                       Source,
+                       Destination,
+                       [add(Source,Destination)]) :- !.
 
 intrinsic_instructions(
-  intrinsic(Comp,[int,int]),
+  intrinsic(Comp,[int,int],1),
   Source,
   Destination,
   [xor(reg(rax),reg(rax)),
@@ -153,13 +157,19 @@ intrinsic_instructions(
    ConstructedPart =.. [CompInstruction,reg(al)].
    
 intrinsic_instructions(
-  intrinsic(+,[float,float]),
+  intrinsic(+,[float,float],1),
   Source,
   Destination,
   [fld(Source),fld(Destination),fadd(reg(st1),reg(st0)),fst(Destination)]) :- !.
-intrinsic_instructions(intrinsic(-,[int,int]),Source,Destination,[sub(Source,Destination)]) :- !.
+
 intrinsic_instructions(
-  intrinsic(*,[int,int]),
+  intrinsic(-,[int,int],1),
+  Source,
+  Destination,
+  [sub(Source,Destination)]) :- !.
+
+intrinsic_instructions(
+  intrinsic(*,[int,int],1),
   Source,
   Destination,
   [
@@ -167,19 +177,21 @@ intrinsic_instructions(
     imul(Source),
     mov(reg(rax),Destination)
   ]) :- !.
+  
 intrinsic_instructions(
-  intrinsic(/,[int,int]),
+  intrinsic(/,[int,int],1),
   Source,
   Destination,
   [xor(reg(rdx),reg(rdx)),mov(Destination,reg(rax)),idiv(Source),mov(reg(rax),Destination)]) :- !.
+  
 intrinsic_instructions(
-  intrinsic('%',[int,int]),
+  intrinsic('%',[int,int],1),
   Source,
   Destination,
   [xorr(reg(rdx),reg(rdx)),mov(Destination,reg(rax)),idiv(Source),mov(reg(rdx),Destination)]) :- !.
-intrinsic_instructions(intrinsic('<<',[int,int]),Source,Destination,[sarl(Source,Destination)]) :- !.
-intrinsic_instructions(intrinsic('>>',[int,int]),Source,Destination,[sarr(Source,Destination)]) :- !.
-intrinsic_instructions(intrinsic(Name,ArgumentTypes),_Source,_Destination,_Code) :-
+intrinsic_instructions(intrinsic('<<',[int,int],1),Source,Destination,[sarl(Source,Destination)]) :- !.
+intrinsic_instructions(intrinsic('>>',[int,int],1),Source,Destination,[sarr(Source,Destination)]) :- !.
+intrinsic_instructions(intrinsic(Name,ArgumentTypes,_ReturnCount),_Source,_Destination,_Code) :-
   format(
     "unable to find instructions for intrinsic ~w on arguments of types ~w~n",
     [Name,ArgumentTypes]),
