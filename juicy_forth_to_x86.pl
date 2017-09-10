@@ -310,7 +310,7 @@ move_n_to_top(Count,StartCount,Code,State,NewState) :-
   appendAll([[mov(stack(S),reg(rax)),mov(reg(rax),Target)],RestCode],Code).
   
 forth_to_asm(A,B,C,D,E) :-
-  ifVerbose((write((A,B,C,D,E)),nl)),
+  ifVerbose((nl,write(compiling -> (A,B,C,D,E)),nl)),
   fail.
 
 forth_to_asm([],
@@ -399,11 +399,18 @@ forth_to_asm(
   !,
   append(PrefixCode,RestCode,Code).
 
-forth_to_asm([num(int(ReturnLabelName)),func(Name,ArgTypes,ArgCount,FRC,label(ReturnLabelName))|Rest],
-             Code,
-             state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-             NewState,
-             RC) :-
+forth_to_asm(
+  [
+    num(int(ReturnLabelName)),
+    func(Name,ArgTypes,ArgCount,FRC,label(ReturnLabelName))
+    |
+    Rest
+  ],
+  Code,
+  state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
+  NewState,
+  RC) :-
+
   !,
   cleanLabel((Name,ArgTypes),FunctionName),
   PrefixCode = 
@@ -510,7 +517,7 @@ forth_to_asm([then(AfterLabel,State1) | Rest],
   forth_to_asm(Rest,RestCode,State1,NewState,RC).
   
 %tailcall at end of function
-forth_to_asm([tailcall(Name,ArgTypes,ArgCount)],
+forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)],
              Code,
              State,
              NewState,
@@ -529,7 +536,7 @@ forth_to_asm([tailcall(Name,ArgTypes,ArgCount)],
     ],
     Code).
              
-forth_to_asm([tailcall(Name,ArgTypes,ArgCount)|Rest],
+forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)|Rest],
              Code,
              State,
              NewState,
@@ -549,21 +556,27 @@ forth_to_asm([tailcall(Name,ArgTypes,ArgCount)|Rest],
   forth_to_asm(Rest,RestCode,State3,NewState,RC),
   append(PrefixCode,RestCode,Code).
 
-forth_to_asm([func(Name,ArgTypes,ArgCount,label(ReturnLabelName))|Rest],
+forth_to_asm([func(Name,ArgTypes,ArgCount,FRC,label(ReturnLabelName))|Rest],
              Code,
              State,
              NewState,
              RC) :-
+  write(FUNC), nl,
   push_all_registers(RegisterPushingCode,State,StateAfterPush),
   !,
   cleanLabel((Name,ArgTypes),CleanName),
-  append(RegisterPushingCode,[jmp(label(CleanName)),label(ReturnLabelName),push(reg(rax))],PrefixCode),
+  append(RegisterPushingCode,[jmp(label(CleanName)),label(ReturnLabelName)],PrefixCode1),
+  (FRC =:= 1 ->
+    append(PrefixCode1,[push(reg(rax))], PrefixCode)
+    ;
+    PrefixCode = PrefixCode1),
   state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames) = StateAfterPush,
   % - Label
   % - ArgCount
   % + push(%eax)
-  NewStackOffset is StackOffset - ArgCount,
-  StateAfterCall = state(0,RegisterCount,RegisterShift,NewStackOffset,RegisterNames),
+  NewStackOffset is (FRC - 1) + (StackOffset - ArgCount),
+  StateAfterCall =
+    state(0,RegisterCount,RegisterShift,NewStackOffset,RegisterNames),
   forth_to_asm(Rest,RestCode,StateAfterCall,NewState,RC),
   !,
   append(PrefixCode,RestCode,Code).
@@ -647,7 +660,7 @@ forth_to_asm(
   intrinsic(Name,[Type1,Type2],_ReturnType,1),
   !,
   intrinsic_instructions(
-    intrinsic(Name,[Type1,Type2]),
+    intrinsic(Name,[Type1,Type2],1),
     Source,
     Destination,
     OperationCode),

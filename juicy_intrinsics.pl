@@ -1,4 +1,9 @@
-:- module(juicy_intrinsics, [intrinsic/4,intrinsic_instructions/4,intrinsic_instructions/3]).
+:- module(juicy_intrinsics, 
+          [
+            intrinsic/4,
+            intrinsic_instructions/4,
+            intrinsic_instructions/3
+          ]).
 
 % intrinsic/3 is used to tell the inference engine
 % the signature of an existing intrinsic function.
@@ -47,14 +52,7 @@ intrinsic('>=',[byte,byte],byte,1).
 intrinsic('index',[generic(vector,[T]),int],T,1).
 intrinsic('length',[generic(vector,[T])],T,1).
 
-sizeof(bit,1).
-sizeof(byte,8).
-sizeof(ascii,8).
-sizeof(char,32).
-sizeof(int,64).
-sizeof(float,64).
-
-intrinsic(*,[byte,byte],byte).
+intrinsic(*,[byte,byte],byte,1).
 
 intrinsic(+,[int,int],int,1).
 intrinsic(-,[int,int],int,1).
@@ -69,6 +67,13 @@ intrinsic('>',[int,int],bool,1).
 intrinsic('>=',[int,int],bool,1).
 intrinsic('==',[int,int],bool,1).
 intrinsic('!=',[int,int],bool,1).
+
+sizeof(bit,1).
+sizeof(byte,8).
+sizeof(ascii,8).
+sizeof(char,32).
+sizeof(int,64).
+sizeof(float,64).
 
 compSetInstruction('>=',setge).
 compSetInstruction('>',setgt).

@@ -6,6 +6,10 @@ optimize_step([mov(A,B),mov(B,A)|Rest],[mov(A,B)|Rest]) :-
   A \= stack_pointer,
   B \= stack_pointer.
 optimize_step([push(reg(X)),pop(reg(X))|Rest],Rest).
+
+optimize_step([push(reg(A)),pop(reg(B))|Rest],
+              [mov(reg(A),reg(B)) | Rest]).
+              
 optimize_step([mov(reg(X),stack(0)),pop(reg(X))|Rest],[add(1*cell_size,stack_pointer)|Rest]).
 %if statement optimization
 optimize_step([mov(B,A),test(A,'$'(0)),jng(Label)|Rest],

@@ -79,7 +79,7 @@ infer_file(FileName) :-
   read_file_to_string(FileName,String,[]),
   tokenize(String,Tokens),
   parse(Tokens,Ast),
-  infer_program(Ast, Inferrences).
+  infer_program(Ast, _Inferrences).
   
 write_to_file(string(S), OutputFile) :-
   open(OutputFile,write,Stream),
@@ -122,7 +122,7 @@ start_internal(_ProgramName, Dict) :-
   Dict = args{outputFile:OutputFile,
               inputFile:InputFile,
               assembler:Assembler,
-              time:Time,
+              time:_Time,
               verbose:Verbose},
   check_arguments(Dict),
   (Verbose ->

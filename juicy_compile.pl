@@ -3,7 +3,7 @@
 :- use_module(juicy_optimize, [optimize/3]).
 :- use_module(juicy_forth_to_x86, [forth_to_x86/4]).
 :- use_module(library(gensym), [gensym/2]).
-:- use_module(juicy_intrinsics, [intrinsic/3]).
+:- use_module(juicy_intrinsics, [intrinsic/4]).
 :- use_module(utils).
 :- use_module(juicy_global).
 
@@ -197,7 +197,7 @@ compile(apply(var(F),Args),Compiled,Context,Context,Offset,NewOffset,N,ReturnTyp
   append(Args,[var(F)],Parts),
   compile_each(Parts,CompiledParts,Context,Context,Offset,OffsetBeforeApplication,N,ArgTypes),
   !,
-  getFuncType(F,Context,func(ArgTypes,ReturnType,ReturnCount)),
+  getFuncType(F,Context,func(ArgTypes,ReturnType)),
   appendAll(CompiledParts,CompiledWithoutExec),
   length(Args,ArgCount),
   genLabel(F,Label),
@@ -240,7 +240,14 @@ compile(apply(var(F),Args,ReturnCount),
         N,
         ReturnType) :-
   genLabel(F,LabelName),
-  compile_each([push(LabelName)|Args],CompiledArgs,Context,Context,Offset,OffsetBeforeApplication,N,[_Label|ArgTypes]),
+  compile_each([push(LabelName)|Args],
+                CompiledArgs,
+                Context,
+                Context,
+                Offset,
+                OffsetBeforeApplication,
+                N,
+                [_Label|ArgTypes]),
   !,
   findFunction(signature(F,ArgTypes,ReturnType,ReturnCount),Context),
   appendAll(CompiledArgs,CompiledWithoutFuncall),
@@ -286,7 +293,15 @@ compile(identity(X),Code,Context,NewContext,Offset,NewOffset,N,ReturnType) :-
 % regular tail funcall
 % no assignment in args
 % checked by not allowing extra stack shifting
-tail(apply(var(F),Args,ReturnCount),Compiled,Context,Context,Offset,NewOffset,N,ReturnType) :-
+tail(apply(var(F),Args,ReturnCount),
+     Compiled,
+     Context,
+     Context,
+     Offset,
+     NewOffset,
+     N,
+     ReturnType) :-
+
   compile_each(
     Args,
     CompiledArgs,
@@ -297,12 +312,12 @@ tail(apply(var(F),Args,ReturnCount),Compiled,Context,Context,Offset,NewOffset,N,
     N,
     ArgTypes),
   !,
-  findFunction(signature(F,ArgTypes,ReturnType),Context),
+  findFunction(signature(F,ArgTypes,ReturnType,ReturnCount),Context),
   appendAll(CompiledArgs,CompiledWithoutFuncall),
   length(Args,ArgCount),
   appendAll(
     [
-      CompiledWithoutFuncalll,
+      CompiledWithoutFuncall,
       [tailcall(F,ArgTypes,ArgCount,ReturnCount)]
     ],
     Compiled),
@@ -361,7 +376,7 @@ compile(var(X),
   NewOffset is Offset + 1.
   
 compile(var(VariableName),_,Context,_,_,_,_,_) :-
-  getCurrentSignature(signature(CurrentFunction,_,_),Context),
+  getCurrentSignature(signature(CurrentFunction,_,_,_),Context),
   format("Unable to find variable `~w' in function `~w'~n",[VariableName,CurrentFunction]),
   fail.
 
@@ -402,10 +417,17 @@ compile(math(-,num(int(0)),Y),
     %nl,
     %fail).
 
-compile(return(apply(F,A)), Compiled, Context, NewContext, Offset, 0, LoopCount, Type) :-
+compile(return(apply(F,A,RC)),
+        Compiled,
+        Context,
+        NewContext,
+        Offset,
+        0,
+        LoopCount,
+        Type) :-
   !,
-  tail(apply(F,A),Compiled,Context,NewContext,Offset,_NewOffset,LoopCount,Type),
-  getCurrentSignature(signature(Name,_,NeededReturnType,_RC),Context),
+  tail(apply(F,A,RC),Compiled,Context,NewContext,Offset,_NewOffset,LoopCount,Type),
+  getCurrentSignature(signature(Name,_,NeededReturnType,CRC),Context),
   (NeededReturnType \= Type ->
      format("type `~w' does not match expected return type of `~w' for function `~w'~n",
             [Type,NeededReturnType,Name]),
@@ -414,8 +436,8 @@ compile(return(apply(F,A)), Compiled, Context, NewContext, Offset, 0, LoopCount,
      1=1
      ).
 
-compile(return, Compiled, Context, NewContext, Offset, 0, LoopCount, Type) :-
-  getCurrentSignature(signature(Name,_,NeededReturnType,RC),Context),
+compile(return, Compiled, Context, Context, Offset, 0, LoopCount, Type) :-
+  getCurrentSignature(signature(Name,_,NeededReturnType,_RC),Context),
   (NeededReturnType \= Type ->
      format("type `~w' does not match expected return type of `~w' for function `~w'~n",
             [Type,NeededReturnType,Name]),

@@ -10,7 +10,7 @@
 :- dynamic(signature_definition/2).
 
 signature(apply,
-          [func([ArgTypes],ReturnType,ReturnCount),ArgTypes],
+          [func([ArgTypes],ReturnType,_ReturnCount),ArgTypes],
           ReturnType).
 
 arguments_context(Args,ArgContext) :-
@@ -69,7 +69,7 @@ infer(definition(Name,Arguments,ReturnType,InferredBody),
       ContextAfter,
       ReturnType) :-
   infer(
-        definition(Name,Arguments,ReturnType,ReturnCount,InferredBody),
+        definition(Name,Arguments,ReturnType,_ReturnCount,InferredBody),
         Inferred,
         Type,
         Context,
@@ -197,7 +197,7 @@ infer(apply(var(X),Args),
     find(type(X,XType),Context) ->
       (
         XType = func(ArgTypes,Type,ReturnCount) ->
-          InferredCode = apply(var(X),InferredArgs)
+          InferredCode = apply(var(X),InferredArgs,ReturnCount)
           ;
           findSignature(apply, [XType | ArgTypes], Type, ReturnCount),
           InferredCode =
@@ -211,7 +211,7 @@ infer(apply(var(X),Args),
         !
     ;
     % apply function 
-    findall(s(N,A,R,RC),signature(N,A,R,RC),S),
+    %findall(s(N,A,R,RC),signature(N,A,R,RC),S),
     findSignature(X,ArgTypes,Type,ReturnCount) ->
       InferredCode = apply(var(X), InferredArgs, ReturnCount), !
     ;
@@ -251,11 +251,11 @@ infer(assign(var(X),Expr),
   infer(Expr,ExprInferred,Type,Context,Context1,FunctionReturnType).
 
 infer(definition(Name,Arguments,ReturnType,ReturnCount, Body),
-      InferredCode,
-      Type,
-      Context,
-      ContextAfter,
-      FunctionReturnType) :-
+      _InferredCode,
+      _Type,
+      _Context,
+      _ContextAfter,
+      _FunctionReturnType) :-
   !,
   format("unable to infer definition of `~w'.\n",[Name]),
   write(definition(Name,Arguments,ReturnType,ReturnCount, Body)),
@@ -345,6 +345,6 @@ infer_program(Definitions, Inferrences) :-
   get_inferred(Inferrences),
   perform_each(
     Inferrences,
-    definition(Name,Args,R,RC,_),
+    definition(Name,Args,R,_RC,_),
     ifVerbose(format("~w ~w~w\n",[R,Name,Args]))).
   
