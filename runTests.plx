@@ -70,7 +70,7 @@ foreach my $test(@tests) {
         indicate $folder, "SUCCESS";
       }
       else {
-        indicate $folder, "FAIL: $return returned, $expectedReturn expected";
+        indicate $folder, "FAIL $return returned, $expectedReturn expected";
       }
     }
     else {
