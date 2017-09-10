@@ -1,0 +1,14 @@
+byte main() {
+  nl();
+  return byte(32);
+}
+
+
+nl() {
+  emit(ascii(10));
+  return;
+}
+
+ascii(int n) {
+  return ascii(byte(n));
+}

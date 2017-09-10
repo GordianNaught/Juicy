@@ -1,0 +1,22 @@
+#!/usr/bin/juicy
+
+// tail recursive routine for finding
+// the factorial of an integer
+
+// accumulator is assumed to start
+// at 1
+factorialTail(x, acc) {
+  if x == 0 {
+    return acc;
+  }
+  // tail recursive call
+  return factorialTail(x-1,x*acc);
+}
+
+// wrapper on tail recursive factorial
+factorial(x) = factorialTail(x,1);
+
+inc(x) = 1+x;
+
+main() = byte(factorial(3));
+

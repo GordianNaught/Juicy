@@ -49,8 +49,8 @@ For other information not in this README, such as how to contribute, please see 
 - [x] make verbose output optional
 - [ ] add verbosity levels?
 - [x] make timing of compilation optional
-- [ ] test cases
-- [ ] run tests when Makefile is ran
+- [x] test cases
+- [x] run tests when Makefile is ran
 - [x] make internal names of functions carry signature information
 - [ ] classes
 - [ ] methods

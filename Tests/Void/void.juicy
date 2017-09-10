@@ -1,0 +1,8 @@
+nop() {
+  return;
+}
+
+main() {
+  nop();
+  return byte(17);
+}

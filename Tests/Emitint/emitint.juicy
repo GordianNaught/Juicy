@@ -1,0 +1,67 @@
+/* This program implements a
+ * routine for printing
+ * an integer to stdout.
+ *
+ * It does this by making a
+ * new overload for emit
+ * taking an argument of type
+ * int. This overload makes
+ * use of the intrinsic emit
+ * that works on type ascii.
+ */
+
+/* convert an integer
+ * to an ascii
+ */
+ascii(int n) {
+  return ascii(byte(n));
+}
+
+/* emit an integer to
+ * stdout
+ */
+emit(int n) {
+  /* if the number is only
+   * one digit
+   */
+  if (n<10) {
+    /* emit it using the
+     * intrinsic built in
+     * emit that works on
+     * type ascii
+     */
+    emit(ascii(n+48));
+    return 1;
+  }
+  /* the base ten number
+   * shifted right by one
+   */
+  shiftr = n/10;
+  /* select out the value
+   * of the least significant
+   * base 10 digit
+   */
+  lowest = n - (10 * shiftr);
+  /* emit the most significant
+   * digits recursively
+   */
+  emit(shiftr);
+  /* emit the least significant
+   * digit using the intrinsic
+   * emit that works on type
+   * ascii
+   */
+  emit(ascii(lowest+48));
+  return 1;
+}
+
+/* the entry point to the program
+ */
+byte main() {
+  /* emit the integer 1234
+   * to stdout
+   */
+  emit(1234);
+  // indicate success
+  return byte(0);
+}

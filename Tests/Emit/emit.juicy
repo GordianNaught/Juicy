@@ -1,0 +1,7 @@
+ascii(int x) {
+  return ascii(byte(x));
+}
+byte main() {
+  emit(ascii(97));
+  return byte(0);
+}

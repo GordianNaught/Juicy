@@ -1,0 +1,5 @@
+identity(x) = x;
+
+main(){
+  return identity(x=byte(0));
+}
