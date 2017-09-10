@@ -65,7 +65,6 @@ foreach my $test(@tests) {
       }
       elsif (defined($expectedOutput) && $output ne $expectedOutput) {
         indicate $folder, "FAIL WRONG OUTPUT";
-        print "expected\n$expectedOutput\nEND\ngot\n$output\nEND"
       }
       elsif ($return  eq $expectedReturn) {
         indicate $folder, "SUCCESS";
