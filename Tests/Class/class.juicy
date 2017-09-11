@@ -1,0 +1,4 @@
+class point {
+  point(x,y);
+}
+main() = byte(point(3,4).x);

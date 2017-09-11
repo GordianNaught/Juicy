@@ -14,7 +14,15 @@ my @tests =
     ['DigitCount',10],
     ['EmitN',49],
     ['LeftPadNumber',50],
-    ['NL',32]
+    ['NL',32],
+    ['HigherOrder',7],
+    ['Lambda', 7],
+    ['Closure', 7],
+    ['Class', 3],
+    ['Vector', 5],
+    ['String', 98],
+    ['Reduce', 10],
+    ['Tagged', 3]
   );
 
 sub find {
@@ -38,7 +46,7 @@ sub indicate {
 foreach my $test(@tests) {
   (my $folder,my $expectedReturn) = @$test;
   my $source = "Tests/$folder/@{[lc $folder]}.juicy";
-  my $build = "juicy $source";
+  my $build = "juicy $source 2> /dev/null";
   my $out = `$build`;
   my $buildStatus = $out =~ m/a\.out created/;
   my $outputFile = "Tests/$folder/@{[lc $folder]}.txt";

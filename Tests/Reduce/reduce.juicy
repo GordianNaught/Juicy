@@ -1,0 +1,8 @@
+reduce(f,v,acc) = reduce(f,v,acc,0,len(v));
+reduce(f,v,acc,c,len) {
+  if c == len {
+    return acc;
+  }
+  return reduce(f,v,f(v[c],acc),c+1,len);
+}
+main() = byte(reduce(+,[1,2,3,4],0));

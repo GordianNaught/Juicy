@@ -1,0 +1,5 @@
+adder(n) = lambda(x) (n+x);
+main() {
+  increment = adder(1);
+  return byte(increment(6));
+}

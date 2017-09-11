@@ -1,0 +1,3 @@
+inc(a) = 1 + a;
+call(f,x) = f(x);
+main() = byte(call(inc,6));

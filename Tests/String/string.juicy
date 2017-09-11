@@ -1,0 +1,5 @@
+main() {
+  str = "abc";
+  chr = str[1];
+  return byte(chr);
+}

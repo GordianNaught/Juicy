@@ -1,0 +1,19 @@
+/* This function divides two integers and returns
+ * an integer if it can without reducing precision.
+ * If it would lose precision, it returns a float.
+ *
+ * The point of this test if to see if Juicy is able
+ * to implicitely make type-tagged unions yet.
+ */
+div(int x,int y) {
+  if ((x/y)*y) != y {
+    fx = float(x);
+    fy = float(y);
+    return fx/fy;
+  }
+  return x/y;
+}
+
+byte main() {
+  return byte(floor(div(7,2)));
+}
