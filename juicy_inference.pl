@@ -90,15 +90,14 @@ infer(Definition,
     returnCount(ReturnType,ReturnCount)
     ;
     true),
-  write("infer each"),nl,
+  ifVerbose((write("infer each"),nl)),
   infer_each(Body,
              InferredBody,
              _Types,
              [current(Name,ArgumentTypes,ReturnType,ReturnCount)|Context],
              _NewContext,
              ReturnType),
-  write("infer each done"),nl,
-  
+  ifVerbose((write("infer each done"),nl)),
   arguments_types(Arguments,ArgTypes),
   returnCount(ReturnType,ReturnCount),
   assert(signature(Name,ArgTypes,ReturnType,ReturnCount)),
@@ -258,8 +257,6 @@ infer(definition(Name,Arguments,ReturnType,ReturnCount, Body),
       _FunctionReturnType) :-
   !,
   format("unable to infer definition of `~w'.\n",[Name]),
-  write(definition(Name,Arguments,ReturnType,ReturnCount, Body)),
-  nl,
   !,
   fail.
 infer(assign(var(Name),_Expr),
