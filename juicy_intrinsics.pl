@@ -88,7 +88,9 @@ compSetInstruction('!=',setne).
 % The result is output into the same register that
 % is input as the argument (TARGET_REGISTER).
 
-% intrinsic_instructions(intrinsic(FUNCTION_NAME,ARGUMENT_TYPES),
+% intrinsic_instructions(intrinsic(FUNCTION_NAME,
+%                                  ARGUMENT_TYPES,
+%                                  RETURN_COUNT),
 %                        TARGET_REGISTER,
 %                        CODE_TO_EMIT)
 intrinsic_instructions(
@@ -137,8 +139,8 @@ intrinsic_instructions(
 % the value in the DESTINATION_REGISTER.
 
 % intrinsic_instructions(intrinsic(FUNCTION_NAME,
-          %                        ARGUMENT_TYPES,
-%                                  RETURNCOUNT),
+%                                  ARGUMENT_TYPES,
+%                                  RETURN_COUNT),
 %                        SOURCE_REGISTER,
 %                        DESTINATION_REGISTER,
 %                        CODE_TO_EMIT).
