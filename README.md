@@ -51,6 +51,7 @@ For other information not in this README, such as how to contribute, please see 
 - [x] make timing of compilation optional
 - [x] test cases
 - [x] run tests when Makefile is ran
+- [ ] compiler return values indicate type or error
 - [x] make internal names of functions carry signature information
 - [ ] classes
 - [ ] methods
