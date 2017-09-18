@@ -83,7 +83,13 @@ expr(gen(Start,Finish,Index,Solution)) -->
 expr(apply(var(Op),[A,B])) --> value(A), math_op(Op), expr(B).
 expr(post_apply(F,Args)) --> ['<'], variable(F), ['>'], arguments(Args).
 expr(apply(F,[])) --> variable(F), ['('], [')'].
-expr(apply(F,[Arg|Rest])) --> variable(F), ['('], expr(Arg), delimited_array_elements(Rest), [')'].
+expr(apply(V,[])) --> value(V), ['('], [')'].
+expr(apply(F,[Arg|Rest])) -->
+  variable(F),
+   ['('], expr(Arg), delimited_array_elements(Rest), [')'].
+expr(apply(F,[Arg|Rest])) -->
+  value(F),
+   ['('], expr(Arg), delimited_array_elements(Rest), [')'].
 expr(freeze(F)) --> ['freeze'], ['('], variable(F), [')'].
 expr(E) --> value(E).
 %expr(array(Elements)) -->

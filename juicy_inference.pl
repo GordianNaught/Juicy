@@ -180,8 +180,7 @@ infer(var(X),var(X),Type,Context,Context,_FunctionReturn) :-
    format("unable to find type of ~w\n",[X]), !, fail).
 
 %apply local variable
-
-%can't pass intrinsic without it thunking
+   
 %so no need to worry about intrinsic_call
 %and tail call prevention
 infer(apply(var(X),Args),
@@ -191,7 +190,8 @@ infer(apply(var(X),Args),
       ContextAfter,
       FunctionReturnType) :-
   !,
-  infer_each(Args,InferredArgs,ArgTypes,Context,ContextAfter,FunctionReturnType),
+  
+infer_each(Args,InferredArgs,ArgTypes,Context,ContextAfter,FunctionReturnType),
   (
     find(type(X,XType),Context) ->
       (
@@ -229,6 +229,15 @@ infer(apply(var(X),Args),
         fail
     ), !
     ;
+    % allow overloading of calling to non-functions
+    infer(apply(var(call),[var(X)|Args]),
+          InferredCode,
+          Type,
+          Context,
+          ContextAfter,
+          FunctionReturnType),
+    !
+    ;
     format(
       "unable to find signature for function `~w` with arguments of types ~w~n",
     [X,ArgTypes]),
@@ -241,6 +250,26 @@ infer(apply(var(X),Args),
     %fail
   ).
 
+% allow overloading of calling to non-functions
+% this will also be used for method implementation
+infer(apply(X,Args),
+      InferredCode,
+      Type,
+      Context,
+      ContextAfter,
+      FunctionReturnType) :-
+  !,
+  % translating to use overloaded call function
+  infer(apply(var(call),[X|Args]),
+        InferredCode,
+        Type,
+        Context,
+        ContextAfter,
+        FunctionReturnType).
+  
+ 
+%can't pass intrinsic without it thunking
+
 infer(assign(var(X),Expr),
       assign(var(X),ExprInferred),
       Type,
@@ -249,7 +278,7 @@ infer(assign(var(X),Expr),
       FunctionReturnType) :-
   infer(Expr,ExprInferred,Type,Context,Context1,FunctionReturnType).
 
-infer(definition(Name,Arguments,ReturnType,ReturnCount, Body),
+infer(definition(Name,_Arguments,_ReturnType,_ReturnCount,_Body),
       _InferredCode,
       _Type,
       _Context,

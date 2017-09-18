@@ -22,7 +22,8 @@ my @tests =
     ['Vector', 5],
     ['String', 98],
     ['Reduce', 10],
-    ['Tagged', 3]
+    ['Tagged', 3],
+    ['CallOverload', 7]
   );
 
 sub find {

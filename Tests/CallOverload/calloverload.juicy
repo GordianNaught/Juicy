@@ -1,0 +1,4 @@
+
+call(int x, y) = x+y;
+
+main() = byte(3(4));
