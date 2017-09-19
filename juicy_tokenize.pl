@@ -2,8 +2,13 @@
 
 :- use_module(library(dcg/basics)).
 :- use_module(utils).
-plural_greedy(Thing,[T|Ts]) --> {E=..[Thing,T]}, E,  plural_greedy_more(Thing,Ts).
-plural_greedy_more(Thing,[T|Ts]) --> {E=..[Thing,T]}, E, !, plural_greedy_more(Thing,Ts).
+
+plural_greedy(Thing,[T|Ts]) -->
+  {E=..[Thing,T]}, E,  plural_greedy_more(Thing,Ts).
+  
+plural_greedy_more(Thing,[T|Ts]) -->
+  {E=..[Thing,T]}, E, !, plural_greedy_more(Thing,Ts).
+  
 plural_greedy_more(_,[]) --> [].
 
 b --> blanks.
@@ -23,7 +28,6 @@ num(num(float(N))) -->
   }.
 num(num(int(N))) --> digits(Ds), {Ds\=[],number_codes(N,Ds)}.
 variable(var(X)) --> word(X).%, {not(reserved(X))}.
-
 
 tokenize(String,Tokens) :-
   string_codes(String,Codes),
@@ -79,5 +83,6 @@ tokenize(Tokens) -->
 tokenize(Tokens) -->
   b, "#!", string_without("\n",_RestOfLine), b, tokenize(Tokens).
 tokenize([N|Rest]) --> b, num(N), b, tokenize(Rest).
-tokenize([var(Name)|Rest]) --> b, variable(var(Name)), b, {not(token(Name,_))}, tokenize(Rest).
+tokenize([var(Name)|Rest]) -->
+  b, variable(var(Name)), b, {not(token(Name,_))}, tokenize(Rest).
 tokenize([Token|Rest]) --> {token(Token,String)}, b, String, b, tokenize(Rest).

@@ -121,12 +121,18 @@ infer(if(Condition,Body),
       Context,
       ReturnType) :-
   !,
-  infer(Condition,InferredCondition,ConditionType,Context,NewContext,ReturnType),
+  infer(Condition,
+        InferredCondition,
+        ConditionType,
+        Context,
+        NewContext,
+        ReturnType),
   !,
   (ConditionType = bool ->
     infer_each(Body,InferredBody,_BodyType,NewContext,_NewerContext,ReturnType)
     ;
-    format("condition of if statement has type of ~w, bool expected\n", [ConditionType]),
+    format("condition of if statement has type of ~w, bool expected\n", 
+           [ConditionType]),
     fail).
 
 % TODO
@@ -169,8 +175,9 @@ infer(return(Expr),
      returnCount(FunctionReturnType,ReturnCount),
      assert(signature(Name,ArgumentTypes,FunctionReturnType,ReturnCount))
      ;
-     format("the return type of `~w' did not match the expected return type of `~w'\n",
-            [ExprReturnType,FunctionReturnType])).
+     format("the return type of `~w'", [ExprReturnType]),
+     format(" did not match the expected return type of `~w'\n",
+            [FunctionReturnType])).
 
 
 infer(var(X),var(X),Type,Context,Context,_FunctionReturn) :-
@@ -225,7 +232,8 @@ infer_each(Args,InferredArgs,ArgTypes,Context,ContextAfter,FunctionReturnType),
       ground(CurrentReturnType) ->
         InferredCode = apply(var(X),InferredArgs,ReturnCount)
         ;
-        format("unable to infer return type of function for recursive call, try starting with base case\n"),
+        format("unable to infer return type of function for recursive call"),
+        format(", try starting with base case\n"),
         fail
     ), !
     ;
@@ -238,9 +246,8 @@ infer_each(Args,InferredArgs,ArgTypes,Context,ContextAfter,FunctionReturnType),
           FunctionReturnType),
     !
     ;
-    format(
-      "unable to find signature for function `~w` with arguments of types ~w~n",
-    [X,ArgTypes]),
+    format("unable to find signature for function `~w`", [X]),
+    format(" with arguments of types ~w~n",[ArgTypes]),
     !,
     fail
     %;
@@ -312,10 +319,22 @@ infer(Ast,
   fail.
 
 partition(Group, Element, Predicate, Compatible, InCompatible) :-
-  copy_term((Element,Predicate),(SatisfactoryElement,SatisfactoryPredicate)),
-  findall(SatisfactoryElement,(member(SatisfactoryElement,Group), SatisfactoryPredicate),Compatible),
-  copy_term((Element,not(Predicate)),(NonSatisfactoryElement,NotSatisfactoryPredicate)),
-  findall(NonSatisfactoryElement,(member(NonSatisfactoryElement,Group), NotSatisfactoryPredicate),InCompatible).
+  copy_term((Element,Predicate),
+            (SatisfactoryElement,SatisfactoryPredicate)),
+  findall(SatisfactoryElement,
+          (
+            member(SatisfactoryElement,Group), 
+            SatisfactoryPredicate
+          ),
+          Compatible),
+  copy_term((Element,not(Predicate)),
+            (NonSatisfactoryElement,NotSatisfactoryPredicate)),
+  findall(NonSatisfactoryElement,
+          (
+            member(NonSatisfactoryElement,Group), 
+            NotSatisfactoryPredicate
+          ),
+          InCompatible).
 
 groundDefinition(definition(Name,ArgTypes,_ReturnType,_Body)) :-
   ground((Name,ArgTypes)).
@@ -364,7 +383,11 @@ infer_program(Definitions, Inferrences) :-
   retractall(call_definition(_,_)),
   retractall(signature_definition(_,_)),
   retractall(inferred(_)),
-  partition(Definitions,Definition,groundDefinition(Definition), GroundDefinitions, NongroundDefinitions),
+  partition(Definitions,
+            Definition,
+            groundDefinition(Definition),
+            GroundDefinitions, 
+            NongroundDefinitions),
   catalog_ground(GroundDefinitions),
   catalog_nonground(NongroundDefinitions),
   infer_with_each(GroundDefinitions),

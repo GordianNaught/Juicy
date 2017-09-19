@@ -48,7 +48,8 @@ optimize_step([dup,func(Name,Types,1,RetLabel),nip|Rest],
               [func(Name,Types,1,RetLabel)|Rest]).
 optimize_step(['2dup',Binary,nip,nip|Rest],[Binary|Rest]) :-
   binary(Binary).
-optimize_step([dup,num(Num1),num(Num2),Op1,Op2,nip|Rest],[num(Num1),num(Num2),Op1,Op2|Rest]):-
+optimize_step([dup,num(Num1),num(Num2),Op1,Op2,nip|Rest],
+              [num(Num1),num(Num2),Op1,Op2|Rest]):-
   binary(Op1),
   binary(Op2).
 optimize_step([dup,over,Binary,nip,exit|Rest],[swap,Binary,exit|Rest]) :-
@@ -57,7 +58,8 @@ optimize_step([dup,over,Binary,nip],[dup,Binary]) :-
   binary(Binary).
 optimize_step([swap,Op|Rest],[Op|Rest]) :-
   commutative(Op).
-optimize_step([dup,num(Num),Binary,nip,exit|Rest],[num(Num),Binary,exit|Rest]) :-
+optimize_step([dup,num(Num),Binary,nip,exit|Rest],
+              [num(Num),Binary,exit|Rest]) :-
   binary(Binary).
 optimize_step([dup,2,pick|Rest],['2dup',swap|Rest]).
 optimize_step([1,pick,1,pick|Rest],['2dup'|Rest]).

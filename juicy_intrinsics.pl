@@ -127,7 +127,8 @@ intrinsic_instructions(
   intrinsic(Name,[ArgumentType],_ReturnCount),
   _Target,
   _Code) :-
-  format("unable to find instructions for intrinsic ~w on argument of type ~w~n",[Name,ArgumentType]),
+  format("unable to find instructions for intrinsic"),
+  format("~w on argument of type ~w~n",[Name,ArgumentType]),
   !,
   fail.
   
@@ -167,7 +168,12 @@ intrinsic_instructions(
   intrinsic(+,[float,float],1),
   Source,
   Destination,
-  [fld(Source),fld(Destination),fadd(reg(st1),reg(st0)),fst(Destination)]) :- !.
+  [
+    fld(Source),
+    fld(Destination),
+    fadd(reg(st1),reg(st0)),
+    fst(Destination)
+  ]) :- !.
 
 intrinsic_instructions(
   intrinsic(-,[int,int],1),
@@ -189,16 +195,42 @@ intrinsic_instructions(
   intrinsic(/,[int,int],1),
   Source,
   Destination,
-  [xor(reg(rdx),reg(rdx)),mov(Destination,reg(rax)),idiv(Source),mov(reg(rax),Destination)]) :- !.
+  [
+    xor(reg(rdx),reg(rdx)),
+    mov(Destination,reg(rax)),
+    idiv(Source),
+    mov(reg(rax),Destination)
+  ]) :- !.
   
 intrinsic_instructions(
   intrinsic('%',[int,int],1),
   Source,
   Destination,
-  [xorr(reg(rdx),reg(rdx)),mov(Destination,reg(rax)),idiv(Source),mov(reg(rdx),Destination)]) :- !.
-intrinsic_instructions(intrinsic('<<',[int,int],1),Source,Destination,[sarl(Source,Destination)]) :- !.
-intrinsic_instructions(intrinsic('>>',[int,int],1),Source,Destination,[sarr(Source,Destination)]) :- !.
-intrinsic_instructions(intrinsic(Name,ArgumentTypes,_ReturnCount),_Source,_Destination,_Code) :-
+  [
+    xorr(reg(rdx),reg(rdx)),
+    mov(Destination,reg(rax)),
+    idiv(Source),
+    mov(reg(rdx),Destination)
+  ]) :- !.
+  
+intrinsic_instructions(
+  intrinsic('<<',[int,int],1),
+  Source,
+  Destination,
+  [sarl(Source,Destination)]) :- !.
+  
+intrinsic_instructions(
+  intrinsic('>>',[int,int],1),
+  Source,
+  Destination,
+  [sarr(Source,Destination)]) :- !.
+
+intrinsic_instructions(
+  intrinsic(Name,ArgumentTypes,_ReturnCount),
+  _Source,
+  _Destination,
+  _Code) :-
+
   format(
     "unable to find instructions for intrinsic ~w on arguments of types ~w~n",
     [Name,ArgumentTypes]),
