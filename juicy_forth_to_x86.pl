@@ -1,5 +1,5 @@
+%% This module is for translating Juicy bytecode into x64 assembly.
 :- module(juicy_forth_to_x86, [forth_to_x86/4]).
-
 :- use_module(utils).
 :- use_module(library(clpfd)).
 :- use_module(assembly_optimize, [assembly_optimize/3]).
@@ -11,6 +11,9 @@ size_of(float,8).
 size_of(byte,1).
 size_of(bool,1).
 size_of(char,4).
+
+% Here I was thinking about operations that need to be supported.
+% Many of these operations are FORTH inspired like the bytecode itself.
 
 % nip rot swap dup unloop 2dup tuck over
 % + - * / mod << >>
@@ -28,20 +31,21 @@ size_of(char,4).
 register_count(3).
 register_name(N,reg(N)).
 
-%state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames).
-start_state(ArgCount,state(0,8,0,ArgCount,registers(r8,r9,r10,r11,r12,r13,r14,r15))).
+% This functor represents current state of the registers and stack.
+% It should help encapsulate the available registers and such on
+% a per architecture basis in the future when more architectures are
+% supported.
 
+% state(UtilizedRegisters,
+%       RegisterCount,
+%       RegisterShift,
+%       StackOffset,
+%       RegisterNames).
 
-op_instruction(Op,_Source,_Destination,_) :-
-  !,
-  format("Unable to find op: ~w~n",[Op]),
-  fail.
-
-op_instruction(op(-,int),Target,[neg(Target)]) :- !.
-
-op_instruction(Op,_Target,_) :-
-  !,
-  format("Unable to find op: ~w~n",[Op]).
+% This predicate shows the expected starting state upon entering a function.
+start_state(
+  ArgCount,
+  state(0,8,0,ArgCount,registers(r8,r9,r10,r11,r12,r13,r14,r15))).
 
 translate_location(reg(Name),String) :-
   !,
@@ -131,13 +135,14 @@ translate_instruction(reg(Name),String) :-
   !,
   format(string(String),"popq(%~w)",[Name]).
 
-translate_instruction(NotFound,_) :- format("cannot translate assembly instruction: ~w~n",[NotFound]), !, fail.
+translate_instruction(NotFound,_) :-
+  format("cannot translate assembly instruction: ~w~n",[NotFound]), !, fail.
 
 push_all_registers([],
                    state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
                    state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames)) :-
   !.
-             
+
 push_all_registers([push(Register) | RestInstructions],
                    state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
                    NewState) :-
@@ -159,7 +164,6 @@ force_to_register_and_get_first(Register,
 force_to_register_and_get_first(Register,[],State,State) :-
   !, pick(Register,0,State).
 
-
 get_register(reg(Name),N,state(UtilizedRegisters,RegisterCount,RegisterShift,_,RegisterNames)) :-
   N =< UtilizedRegisters,
   Index is 1 + ((RegisterShift + N) mod RegisterCount),
@@ -178,7 +182,7 @@ allocate_register(Register,
   !,
   get_first_register(Register,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
   NewUtilized is UtilizedRegisters + 1.
-  
+
 allocate_register(RegisterToBuffer,
                   [push(RegisterToBuffer)],
                   state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
@@ -258,7 +262,6 @@ remove_all_but(NumberToPreserve,
          Code,
          state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
          NewState).
-  
 
 pick(stack(StackIndex),Position,state(UtilizedRegisters,_,_,_,_)) :-
   Position >= UtilizedRegisters,
@@ -288,7 +291,7 @@ move_n_to_top(Count,
   !.
 move_n_to_top(N,Code,State,NewState) :-
   move_n_to_top(N,N,Code,State,NewState).
-  
+
 move_n_to_top(0,_,[],State,State) :- !.
 
 move_n_to_top(Count,StartCount,Code,State,NewState) :-
@@ -308,7 +311,7 @@ move_n_to_top(Count,StartCount,Code,State,NewState) :-
   pick_from_top(Target,TargetLocation,State),
   move_n_to_top(Location,StartCount,RestCode,State,NewState),
   appendAll([[mov(stack(S),reg(rax)),mov(reg(rax),Target)],RestCode],Code).
-  
+
 forth_to_asm(A,B,C,D,E) :-
   ifVerbose((nl,write(compiling -> (A,B,C,D,E)),nl)),
   fail.
@@ -319,7 +322,7 @@ forth_to_asm([],
              state(0,RegisterCount,RegisterShift,0,RegisterNames),
              0) :-
   !.
-  
+
 forth_to_asm([],
              [add(N*cell_size,stack_pointer),ret],
              state(_,RegisterCount,RegisterShift,N,RegisterNames),
@@ -515,7 +518,7 @@ forth_to_asm([then(AfterLabel,State1) | Rest],
              RC) :-
   !,
   forth_to_asm(Rest,RestCode,State1,NewState,RC).
-  
+
 %tailcall at end of function
 forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)],
              Code,
@@ -535,7 +538,7 @@ forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)],
       [jmp(label(FunctionName))]
     ],
     Code).
-             
+
 forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)|Rest],
              Code,
              State,
@@ -579,7 +582,7 @@ forth_to_asm([func(Name,ArgTypes,ArgCount,FRC,label(ReturnLabelName))|Rest],
   forth_to_asm(Rest,RestCode,StateAfterCall,NewState,RC),
   !,
   append(PrefixCode,RestCode,Code).
-  
+
 forth_to_asm([over|Rest],Code,S,NewS,RC) :-
   !,
   forth_to_asm([1,pick|Rest],Code,S,NewS,RC).
@@ -599,10 +602,10 @@ forth_to_asm(['2dup'|Rest],Code,S,NewS,RC) :-
   pick(Second,2,S2),
   forth_to_asm(Rest,RestCode,S2,NewS,RC),
   appendAll([Buffering,Buffering1,[mov(First,FirstRegister),mov(Second,SecondRegister)],RestCode],Code).
-  
+
 %forth_to_asm([execute(N)|Rest],Code,S,NewS) :-
 %forth_to_asm([call(function,N)|Rest],Code,S,NewS) :-
-  
+
 forth_to_asm([N,pick|Rest],[mov(Location,Target)|RestCode],S,NewS,RC) :-
   number(N),
   pick(Location,N,S),
@@ -610,7 +613,7 @@ forth_to_asm([N,pick|Rest],[mov(Location,Target)|RestCode],S,NewS,RC) :-
   allocate_register(Target,[],S,S1),
   !,
   forth_to_asm(Rest,RestCode,S1,NewS,RC).
-  
+
 forth_to_asm([N,pick|Rest],Code,S,NewS,RC) :-
   number(N),
   allocate_register(Target,Buffering,S,S1),
@@ -627,7 +630,7 @@ forth_to_asm([swap|Rest],Code,S,NS,RC) :-
   pick(LocationB,1,S),
   forth_to_asm(Rest,RestCode,S,NS,RC),
   append([xchg(LocationA,LocationB)],RestCode,Code).
-  
+
 forth_to_asm([swap|Rest],
              Code,
              state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
@@ -646,9 +649,7 @@ forth_to_asm([intrinsic(Name,[Type1],1) | Rest],Code,State,NewState,RC) :-
   force_to_register_and_get_first(Target,Buffering,State,State1),
   forth_to_asm(Rest,RestCode,State1,NewState,RC),
   appendAll([Buffering,OperationCode,RestCode],Code).
-  
-  
-  
+
 forth_to_asm(
   [intrinsic(Name,[Type1,Type2],1)|Rest],
   Code,
@@ -670,7 +671,7 @@ forth_to_asm(
     state(NewUtilization,RegisterCount,RegisterShift,StackOffset,RegisterNames),
   forth_to_asm(Rest,RestCode,State1,NewState,RC),
   appendAll([Buffering,OperationCode,RestCode],Code).
-  
+
 %forth_to_asm([label(Name)|Rest],[label(Name)|RestCode],State,NewState) :-
   %forth_to_asm(Rest,RestCode,State,NewState).
 
@@ -689,7 +690,7 @@ forth_to_asm([num(float(N))|Rest],Result,State,NewState,RC) :-
 forth_to_asm([nip,nip|Rest],Code,R,NewR,RC) :-
   !,
   forth_to_asm([nip(2)|Rest],Code,R,NewR,RC).
-  
+
 forth_to_asm([nip|Rest],Code,R,NewR,RC) :-
   !,
   forth_to_asm([nip(1)|Rest],Code,R,NewR,RC).
@@ -698,7 +699,6 @@ forth_to_asm([nip(N),nip|Rest],Code,R,NewR,RC) :-
   NewN is N + 1,
   !,
   forth_to_asm([nip(NewN)|Rest],Code,R,NewR,RC).
-
 
 forth_to_asm([nip(N)|Rest],Code,R,NewR,RC) :-
   !,
@@ -728,10 +728,9 @@ forth_to_x86(ArgCount,Forth,Assembly,ReturnCount) :-
   (psuedo_asm_to_x64(OptimizedPseudoAssembly,Assembly) ->
     ifVerbose(format("~n    Done Translating PseudoAssembly~n~n"))
     ;
-    
     format("~n    Unable to Translate PseudoAssembly~n~n"),
     fail).
-    
+
 
 %forth_to_asm([nip(N)|Rest],Code,Rest,R,NewR) :-
   
