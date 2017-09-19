@@ -9,8 +9,10 @@ optimize_step([push(reg(X)),pop(reg(X))|Rest],Rest).
 
 optimize_step([push(reg(A)),pop(reg(B))|Rest],
               [mov(reg(A),reg(B)) | Rest]).
-              
-optimize_step([mov(reg(X),stack(0)),pop(reg(X))|Rest],[add(1*cell_size,stack_pointer)|Rest]).
+
+optimize_step([mov(reg(X),stack(0)),pop(reg(X))|Rest],
+              [add(1*cell_size,stack_pointer)|Rest]).
+
 %if statement optimization
 optimize_step([mov(B,A),test(A,'$'(0)),jng(Label)|Rest],
               [test(B,'$'(0)),jng(Label)|Rest]).
