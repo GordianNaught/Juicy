@@ -1,7 +1,10 @@
+%% This module is a peephole optimizer for Juicy bytecode.
 :- module(juicy_optimize, [optimize/3]).
 :- use_module(juicy_global).
 
-commutative(intrinsic(OpName,[_Type1,_Type2])) :-
+% These make the optimizer aware of some commutative
+% operations so that it can sometimes reorder instructions.
+commutative(intrinsic(OpName,[_Type1,_Type2],1)) :-
   !,
   commutative(OpName).
 commutative(+).
@@ -10,9 +13,15 @@ commutative('|').
 commutative(&).
 commutative(and).
 commutative(or).
-monadic(func(_Name,_,1,_ReturnCount,_ReturnLabel)).
-binary(func(_Name,_,2,_ReturnCount,_ReturnLabel)).
-binary(op(OpName,_Type1,_Type2)) :- !, binary(OpName).
+
+% This makes the optimizer aware of what a function taking only
+% one argument and returning only one value looks like.
+monadic(func(_Name,_,1,1,_ReturnLabel)).
+
+% This makes the optimizer aware of what functions taking two
+% arguments and returning only one value look like.
+binary(func(_Name,_,2,1,_ReturnLabel)).
+binary(intrinsic(OpName,[_Type1,_Type2],1)) :- !, binary(OpName).
 binary('<<').
 binary(+).
 binary(-).
@@ -24,6 +33,10 @@ binary('||').
 binary('%').
 binary('/').
 
+% These optimization steps dictate optimizing transformations
+% the peephole optimizer is able to make on the bytecode.
+
+% optimize_step(Given, Optimized).
 optimize_step(
   [dup,tailcall(Name,Types,1)|Rest],
   [tailcall(Name,Types,1)|Rest]
