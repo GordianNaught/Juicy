@@ -1,3 +1,5 @@
+%% This module is a peephole optimizer for the pseudo-assembly
+%% intermediate representation.
 :- module(assembly_optimize, [assembly_optimize/3]).
 :- use_module(juicy_global).
 
