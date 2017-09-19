@@ -2,6 +2,21 @@
 use warnings;
 use strict;
 
+=begin comment
+  This program is for running tests against the Juicy compiler.
+  The tests array below expects a name of a folder residing in
+  ./Tests/ and a return value for the program to exit with.
+  It is implied that there is a juicy program by the same name
+  in lowercase (with .juicy at the end) in that folder.
+  If there is also a file with that name and the `.txt' extension,
+  then the output of the program is checked against the content
+  of that file.
+  If no `.txt' file is present, only the return value the program
+  exits with is checked (against the provided value in the pair
+  within the @tests array).
+=end comment
+=cut
+
 my @tests =
   (
     ['Emit',0],
