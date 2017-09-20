@@ -3,7 +3,6 @@
 :- module(
   juicy,
   [
-    compile/1,
     compile/2,
     start/1,
     infer_file/1
