@@ -161,7 +161,7 @@ compile(if(Condition,Body),Code,Context,Context,Offset,Offset,N,void) :-
   compile_each(Body,BodyPartsCompiled,Context,_,Offset,OffsetAfterBody,N,_),
   StackChange is OffsetAfterBody-Offset,
   % allowing for return statement
-  % code cause negative stack change
+  % could cause negative stack change
   max(StackChange,0,StackMovement),
   nCopies(StackMovement,drop,CleanBody),
   appendAll(BodyPartsCompiled,BodyCompiled),
