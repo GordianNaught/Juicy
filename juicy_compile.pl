@@ -99,7 +99,7 @@ compile(A,_,_,_,_,_,_,_) :-
   ifVerbose((write(compile(A)), nl)),
   fail.
 
-%fix
+% TODO: fix
 compile(gen(Start,Finish,var(Index),Solution),
         Code,
         Context,
@@ -123,7 +123,7 @@ compile(gen(Start,Finish,var(Index),Solution),
     T),
   appendAll([CFinish,CStart,[do],CSolution,[loop]],Code).
 
-%no assignment in declaration
+% no assignment in declaration
 compile(for(Start,Finish,var(Index),Statements),
         Code,
         Context,
@@ -152,7 +152,7 @@ compile(for(Start,Finish,var(Index),Statements),
   appendAll(Codes,LoopBodyCode),
   appendAll([CFinish,CStart,[do],LoopBodyCode,CleanBody,[loop]],Code).
 
-%no assignment in declaration
+% no assignment in declaration
 compile(if(Condition,Body),Code,Context,Context,Offset,Offset,N,void) :-
   compile(Condition,ConditionCode,Context,Context,Offset,Offset1,N,bool),
   % this ensures that no assignments happened
@@ -411,7 +411,8 @@ compile(var(VariableName),_,Context,_,_,_,_,_) :-
          [VariableName,CurrentFunction]),
   fail.
 
-%fix compile each to handle assignments inside
+% TODO: fix compile each to handle assignments inside
+% NOTE: probably already fixed at this point
 compile(array(Elements),
         Compiled,
         Context,
@@ -645,7 +646,7 @@ compile_program(Definitions,Codes) :-
           Codes).
 
 %compile(str(String),Compiled,Context,Context,Offset,NewOffset) :-
-  %NewOffset is Offset + 1.
+%  NewOffset is Offset + 1.
 
 
 % regular tail funcall
