@@ -121,7 +121,9 @@ translate_instruction(Instruction,String) :-
   !,
   translate_location(Location1, Location1String),
   translate_location(Location2, Location2String),
-  format(string(String),"~w   ~w, ~w",[InstructionNameString, Location1String, Location2String]).
+  format(string(String),
+         "~w   ~w, ~w",
+         [InstructionNameString, Location1String, Location2String]).
 
 translate_instruction(Instruction,String) :-
   Instruction =.. [InstructionName, Location],
@@ -139,32 +141,71 @@ translate_instruction(NotFound,_) :-
   format("cannot translate assembly instruction: ~w~n",[NotFound]), !, fail.
 
 push_all_registers([],
-                   state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-                   state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames)) :-
+                   state(0,
+                         RegisterCount,
+                         RegisterShift,
+                         StackOffset,
+                         RegisterNames),
+                   state(0,
+                         RegisterCount,
+                         RegisterShift,
+                         StackOffset,
+                         RegisterNames)) :-
   !.
 
 push_all_registers([push(Register) | RestInstructions],
-                   state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
+                   state(UtilizedRegisters,
+                         RegisterCount,
+                         RegisterShift,
+                         StackOffset,
+                         RegisterNames),
                    NewState) :-
   RegisterLocation is UtilizedRegisters - 1,
-  pick(Register,RegisterLocation,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
+  pick(Register,
+       RegisterLocation,
+       state(UtilizedRegisters,
+             RegisterCount,
+             RegisterShift,
+             StackOffset,
+             RegisterNames)),
   RegistersLeft = RegisterLocation,
   NewOffset is StackOffset + 1,
   NewRegisterShift is RegisterShift + 1,
   !,
-  push_all_registers(RestInstructions,state(RegistersLeft,RegisterCount,NewRegisterShift,NewOffset,RegisterNames),NewState).
+  push_all_registers(
+    RestInstructions,
+    state(RegistersLeft,
+          RegisterCount,
+          NewRegisterShift,
+          NewOffset,
+          RegisterNames),
+    NewState).
 
-force_to_register_and_get_first(Register,
-                                [pop(Register)],
-                                state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-                                state(1,RegisterCount,RegisterShift,NewStackOffset,RegisterNames)) :-
+force_to_register_and_get_first(
+  Register,
+  [pop(Register)],
+  state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
+  state(1,RegisterCount,RegisterShift,NewStackOffset,RegisterNames)) :-
+
   !,
-  get_first_register(Register,state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
+  get_first_register(Register,
+                     state(0,
+                           RegisterCount,
+                           RegisterShift,
+                           StackOffset,
+                           RegisterNames)),
   NewStackOffset is StackOffset - 1.
+
 force_to_register_and_get_first(Register,[],State,State) :-
   !, pick(Register,0,State).
 
-get_register(reg(Name),N,state(UtilizedRegisters,RegisterCount,RegisterShift,_,RegisterNames)) :-
+get_register(reg(Name),
+             N,
+             state(UtilizedRegisters,
+                   RegisterCount,
+                   RegisterShift,
+                   _,
+                   RegisterNames)) :-
   N =< UtilizedRegisters,
   Index is 1 + ((RegisterShift + N) mod RegisterCount),
   arg(Index,RegisterNames,Name).
@@ -176,39 +217,92 @@ get_first_register(Register,State) :-
 
 allocate_register(Register,
                   [],
-                  state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-                  state(NewUtilized,RegisterCount,RegisterShift,StackOffset,RegisterNames)) :-
+                  state(UtilizedRegisters,
+                        RegisterCount,
+                        RegisterShift,
+                        StackOffset,
+                        RegisterNames),
+                  state(NewUtilized,
+                        RegisterCount,
+                        RegisterShift,
+                        StackOffset,
+                        RegisterNames)) :-
   UtilizedRegisters < RegisterCount,
   !,
-  get_first_register(Register,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
+  get_first_register(
+    Register,
+    state(UtilizedRegisters,
+          RegisterCount,
+          RegisterShift,
+          StackOffset,
+          RegisterNames)),
   NewUtilized is UtilizedRegisters + 1.
 
 allocate_register(RegisterToBuffer,
                   [push(RegisterToBuffer)],
-                  state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-                  state(UtilizedRegisters,RegisterCount,NewRegisterShift,NewStackOffset,RegisterNames)) :-
+                  state(UtilizedRegisters,
+                        RegisterCount,
+                        RegisterShift,
+                        StackOffset,
+                        RegisterNames),
+                  state(UtilizedRegisters,
+                        RegisterCount,
+                        NewRegisterShift,
+                        NewStackOffset,
+                        RegisterNames)) :-
   UtilizedRegisters == RegisterCount,
   !,
-  get_register(RegisterToBuffer,0,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
+  get_register(
+    RegisterToBuffer,
+    0,
+    state(UtilizedRegisters,
+          RegisterCount,
+          RegisterShift,
+          StackOffset,
+          RegisterNames)),
   NewStackOffset is StackOffset + 1,
   NewRegisterShift is RegisterShift + 1.
 
 nip(NipCount,
     [mov(TopOfstack,Destination)],
-    state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-    state(NewUtilization,RegisterCount,RegisterShift,StackOffset,RegisterNames)) :-
+    state(UtilizedRegisters,
+          RegisterCount,
+          RegisterShift,
+          StackOffset,
+          RegisterNames),
+    state(NewUtilization,
+          RegisterCount,
+          RegisterShift,
+          StackOffset,
+          RegisterNames)) :-
   UtilizedRegisters > 0,
   NipCount < UtilizedRegisters,
   !,
   Top is UtilizedRegisters - 1,
   Target is UtilizedRegisters - (NipCount+1),
   NewUtilization is UtilizedRegisters - NipCount,
-  get_register(TopOfstack,Top,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
-  get_register(Destination,Target,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)).
+  get_register(TopOfstack,
+               Top,
+               state(UtilizedRegisters,
+                     RegisterCount,
+                     RegisterShift,
+                     StackOffset,
+                     RegisterNames)),
+  get_register(Destination,
+               Target,
+               state(UtilizedRegisters,
+                     RegisterCount,
+                     RegisterShift,
+                     StackOffset,
+                     RegisterNames)).
 
 nip(NipCount,
     [add(StackNips * cell_size,stack_pointer)],
-    state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
+    state(UtilizedRegisters,
+          RegisterCount,
+          RegisterShift,
+          StackOffset,
+          RegisterNames),
     state(1,RegisterCount,NewRegisterShift,NewStackOffset,RegisterNames)) :-
   NipCount >= UtilizedRegisters,
   UtilizedRegisters > 0,
@@ -221,12 +315,21 @@ nip(NipCount,
   NewStackOffset is StackOffset - StackNips.
 
 nip(NipCount,
-    [pop(FirstRegister),add(NipCount*cell_size,stack_pointer)],
+    [
+      pop(FirstRegister),
+      add(NipCount*cell_size,stack_pointer)
+    ],
     state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
     %assume at least one registerget_first_register
     state(1,RegisterCount,RegisterShift,NewStackOffset,RegisterNames)) :-
   %StackNips is NipCount - 1,
-  get_register(FirstRegister,0,state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
+  get_register(FirstRegister,
+               0,
+               state(0,
+                     RegisterCount,
+                     RegisterShift,
+                     StackOffset,
+                     RegisterNames)),
   NewStackOffset is StackOffset - (NipCount+1).
 drop(0,[],S,S) :- !.
 drop(N,
@@ -238,16 +341,32 @@ drop(N,
 
 drop(N,
      [],
-     state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-     state(NewUtilization,RegisterCount,RegisterShift,StackOffset,RegisterNames)) :-
+     state(UtilizedRegisters,
+           RegisterCount,
+           RegisterShift,
+           StackOffset,
+           RegisterNames),
+     state(NewUtilization,
+           RegisterCount,
+           RegisterShift,
+           StackOffset,
+           RegisterNames)) :-
   UtilizedRegisters >= N,
   !,
   NewUtilization is UtilizedRegisters - N.
 
 drop(N,
      [add(StackRemoves*cell_size,stack_pointer)],
-     state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-     state(0,RegisterCount,RegisterShift,NewStackOffset,RegisterNames)) :-
+     state(UtilizedRegisters,
+           RegisterCount,
+           RegisterShift,
+           StackOffset,
+           RegisterNames),
+     state(0,
+           RegisterCount,
+           RegisterShift,
+           NewStackOffset,
+           RegisterNames)) :-
   UtilizedRegisters < N,
   !,
   StackRemoves is N - UtilizedRegisters,
@@ -255,38 +374,83 @@ drop(N,
 
 remove_all_but(NumberToPreserve,
                Code,
-               state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
+               state(UtilizedRegisters,
+                     RegisterCount,
+                     RegisterShift,
+                     StackOffset,
+                     RegisterNames),
                NewState) :-
   NumberToRemove is (UtilizedRegisters + StackOffset) - NumberToPreserve,
   drop(NumberToRemove,
          Code,
-         state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
+         state(UtilizedRegisters,
+               RegisterCount,
+               RegisterShift,
+               StackOffset,
+               RegisterNames),
          NewState).
 
 pick(stack(StackIndex),Position,state(UtilizedRegisters,_,_,_,_)) :-
   Position >= UtilizedRegisters,
   !,
   StackIndex is Position - UtilizedRegisters.
-pick(Place,Position,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)) :-
+pick(Place,
+     Position,
+     state(UtilizedRegisters,
+           RegisterCount,
+           RegisterShift,
+           StackOffset,
+           RegisterNames)) :-
   RegisterIndex is UtilizedRegisters - (1 + Position),
-  get_register(Place,RegisterIndex,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)).
+  get_register(
+    Place,
+    RegisterIndex,
+    state(UtilizedRegisters,
+          RegisterCount,
+          RegisterShift,
+          StackOffset,
+          RegisterNames)).
   
-pick_from_top(stack(StackIndex),Index,state(_UtilizedRegisters,_RegisterCount,_RegisterShift,StackOffset,_RegisterNames)) :-
+pick_from_top(stack(StackIndex),
+              Index,
+              state(_UtilizedRegisters,
+                    _RegisterCount,
+                    _RegisterShift,
+                    StackOffset,
+                    _RegisterNames)) :-
   Index < StackOffset,
   !,
   StackIndex = StackOffset-(Index+1).
-pick_from_top(reg(Name),Index,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)) :-
+pick_from_top(reg(Name),
+              Index,
+              state(UtilizedRegisters,
+                    RegisterCount,
+                    RegisterShift,
+                    StackOffset,
+                    RegisterNames)) :-
   Index >= StackOffset,
   !,
   RegisterIndex = (Index-StackOffset),
   PickIndex = UtilizedRegisters - (RegisterIndex + 1),
   pick(reg(Name),PickIndex,
-  state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)).
+  state(UtilizedRegisters,
+        RegisterCount,
+        RegisterShift,
+        StackOffset,
+        RegisterNames)).
 
 move_n_to_top(Count,
               [],
-              state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-              state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)) :-
+              state(UtilizedRegisters,
+                    RegisterCount,
+                    RegisterShift,
+                    StackOffset,
+                    RegisterNames),
+              state(UtilizedRegisters,
+                    RegisterCount,
+                    RegisterShift,
+                    StackOffset,
+                    RegisterNames)) :-
   Count is UtilizedRegisters + StackOffset,
   !.
 move_n_to_top(N,Code,State,NewState) :-
@@ -324,7 +488,10 @@ forth_to_asm([],
   !.
 
 forth_to_asm([],
-             [add(N*cell_size,stack_pointer),ret],
+             [
+               add(N*cell_size,stack_pointer),
+               ret
+             ],
              state(_,RegisterCount,RegisterShift,N,RegisterNames),
              state(0,RegisterCount,RegisterShift,0,RegisterNames),
              0) :-
@@ -333,7 +500,10 @@ forth_to_asm([],
 
 % no registers used and StackOffset is one
 forth_to_asm([],
-             [pop(reg(rax)),ret],
+             [
+               pop(reg(rax)),
+               ret
+             ],
              state(0,RegisterCount,RegisterShift,1,RegisterNames),
              state(0,RegisterCount,RegisterShift,0,RegisterNames),
              1) :-
@@ -341,7 +511,11 @@ forth_to_asm([],
 
 % no registers used and StackOffset is nonzero
 forth_to_asm([],
-             [pop(reg(rax)),add(Extra*cell_size,stack_pointer),ret],
+             [
+               pop(reg(rax)),
+               add(Extra*cell_size,stack_pointer),
+               ret
+             ],
              state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
              state(0,RegisterCount,RegisterShift,0,RegisterNames),
              1) :-
@@ -352,22 +526,50 @@ forth_to_asm([],
 % registers are used and StackOffset is 0
 forth_to_asm([],
              [mov(Result,reg(rax)),ret],
-             state(UtilizedRegisters,RegisterCount,RegisterShift,0,RegisterNames),
-             state(0,RegisterCount,RegisterShift,0,RegisterNames),
+             state(UtilizedRegisters,
+                   RegisterCount,
+                   RegisterShift,
+                   0,
+                   RegisterNames),
+             state(0,
+                   RegisterCount,
+                   RegisterShift,
+                   0,
+                   RegisterNames),
              1) :-
   UtilizedRegisters > 0,
   !,
-  pick(Result,0,state(UtilizedRegisters,RegisterCount,RegisterShift,0,RegisterNames)).
+  pick(Result,
+       0,
+       state(UtilizedRegisters,RegisterCount,RegisterShift,0,RegisterNames)).
 
 % registers are used and StackOffset is nonzero
 forth_to_asm([],
-             [mov(Result,reg(rax)),add(StackOffset*cell_size,stack_pointer),ret],
-             state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-             state(0,RegisterCount,RegisterShift,0,RegisterNames),
+             [
+               mov(Result,reg(rax)),
+               add(StackOffset*cell_size,stack_pointer),
+               ret
+             ],
+             state(UtilizedRegisters,
+                   RegisterCount,
+                   RegisterShift,
+                   StackOffset,
+                   RegisterNames),
+             state(0,
+                   RegisterCount,
+                   RegisterShift,
+                   0,
+                   RegisterNames),
              1) :-
   StackOffset > 0,
   !,
-  pick(Result,0,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)).
+  pick(Result,
+       0,
+       state(UtilizedRegisters,
+             RegisterCount,
+             RegisterShift,
+             StackOffset,
+             RegisterNames)).
 
 % no registers used and StackOffset is 0 means the function failed
 
@@ -428,7 +630,8 @@ forth_to_asm(
   % - ArgCount
   % + push(%eax)
   NewStackOffset is (StackOffset - ArgCount)+FRC,
-  StateAfterCall = state(0,RegisterCount,RegisterShift,NewStackOffset,RegisterNames),
+  StateAfterCall =
+    state(0,RegisterCount,RegisterShift,NewStackOffset,RegisterNames),
   forth_to_asm(Rest,RestCode,StateAfterCall,NewState,RC),
   !,
   append(PrefixCode,RestCode,Code).
@@ -449,7 +652,18 @@ forth_to_asm([if(label(FailLabel),State1)|Rest],
   !,
   pick(TopOfStack,0,State),
   drop(1,Dropping,State,State1),
-  appendAll([[mov(TopOfStack,reg(rax)),test(reg(rax),reg(rax))],Dropping,[je(label(FailLabel))]], PrefixCode),
+  appendAll(
+    [
+      [
+        mov(TopOfStack,reg(rax)),
+        test(reg(rax),reg(rax))
+      ],
+      Dropping,
+      [
+        je(label(FailLabel))
+      ]
+    ],
+    PrefixCode),
   forth_to_asm(Rest,RestCode,State1,NewState,RC),
   append(PrefixCode,RestCode,Code).
 
@@ -567,12 +781,18 @@ forth_to_asm([func(Name,ArgTypes,ArgCount,FRC,label(ReturnLabelName))|Rest],
   push_all_registers(RegisterPushingCode,State,StateAfterPush),
   !,
   cleanLabel((Name,ArgTypes),CleanName),
-  append(RegisterPushingCode,[jmp(label(CleanName)),label(ReturnLabelName)],PrefixCode1),
+  append(RegisterPushingCode,
+         [
+           jmp(label(CleanName)),
+           label(ReturnLabelName)
+         ],
+         PrefixCode1),
   (FRC =:= 1 ->
     append(PrefixCode1,[push(reg(rax))], PrefixCode)
     ;
     PrefixCode = PrefixCode1),
-  state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames) = StateAfterPush,
+  StateAfterPush =
+    state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
   % - Label
   % - ArgCount
   % + push(%eax)
@@ -601,7 +821,17 @@ forth_to_asm(['2dup'|Rest],Code,S,NewS,RC) :-
   pick(First,3,S2),
   pick(Second,2,S2),
   forth_to_asm(Rest,RestCode,S2,NewS,RC),
-  appendAll([Buffering,Buffering1,[mov(First,FirstRegister),mov(Second,SecondRegister)],RestCode],Code).
+  appendAll(
+    [
+      Buffering,
+      Buffering1,
+      [
+        mov(First,FirstRegister),
+        mov(Second,SecondRegister)
+      ],
+      RestCode
+    ],
+    Code).
 
 %forth_to_asm([execute(N)|Rest],Code,S,NewS) :-
 %forth_to_asm([call(function,N)|Rest],Code,S,NewS) :-
@@ -637,7 +867,9 @@ forth_to_asm([swap|Rest],
              NewState,
              RC) :-
   !,
-  get_first_register(Register,state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
+  get_first_register(
+    Register,
+    state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
   StackOffset1 is StackOffset - 1,
   State1 = state(1,RegisterCount,RegisterShift,StackOffset1,RegisterNames),
   forth_to_asm([swap|Rest],RestCode,State1,NewState,RC),
@@ -664,11 +896,29 @@ forth_to_asm(
     Source,
     Destination,
     OperationCode),
-  force_to_register_and_get_first(Source,Buffering,State,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
-  pick(Destination,1,state(UtilizedRegisters,RegisterCount,RegisterShift,StackOffset,RegisterNames)),
+  force_to_register_and_get_first(
+    Source,
+    Buffering,
+    State,
+    state(UtilizedRegisters,
+          RegisterCount,
+          RegisterShift,
+          StackOffset,
+          RegisterNames)),
+  pick(Destination,
+       1,
+       state(UtilizedRegisters,
+             RegisterCount,
+             RegisterShift,
+             StackOffset,
+             RegisterNames)),
   NewUtilization is UtilizedRegisters - 1,
   State1 =
-    state(NewUtilization,RegisterCount,RegisterShift,StackOffset,RegisterNames),
+    state(NewUtilization,
+          RegisterCount,
+          RegisterShift,
+          StackOffset,
+          RegisterNames),
   forth_to_asm(Rest,RestCode,State1,NewState,RC),
   appendAll([Buffering,OperationCode,RestCode],Code).
 
@@ -730,10 +980,3 @@ forth_to_x86(ArgCount,Forth,Assembly,ReturnCount) :-
     ;
     format("~n    Unable to Translate PseudoAssembly~n~n"),
     fail).
-
-
-%forth_to_asm([nip(N)|Rest],Code,Rest,R,NewR) :-
-  
-
-
-  
