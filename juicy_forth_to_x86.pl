@@ -334,8 +334,16 @@ nip(NipCount,
 drop(0,[],S,S) :- !.
 drop(N,
      [add(N*cell_size,stack_pointer)],
-     state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-     state(0,RegisterCount,RegisterShift,NewStackOffset,RegisterNames)) :-
+     state(0,
+           RegisterCount,
+           RegisterShift,
+           StackOffset,
+           RegisterNames),
+     state(0,
+           RegisterCount,
+           RegisterShift,
+           NewStackOffset,
+           RegisterNames)) :-
   !,
   NewStackOffset is StackOffset - N.
 
@@ -474,7 +482,16 @@ move_n_to_top(Count,StartCount,Code,State,NewState) :-
   TargetLocation is StartCount - Count,
   pick_from_top(Target,TargetLocation,State),
   move_n_to_top(Location,StartCount,RestCode,State,NewState),
-  appendAll([[mov(stack(S),reg(rax)),mov(reg(rax),Target)],RestCode],Code).
+  appendAll(
+    [
+      [
+        mov(stack(S),
+        reg(rax)),
+        mov(reg(rax),Target)
+      ],
+      RestCode
+    ],
+    Code).
 
 forth_to_asm(A,B,C,D,E) :-
   ifVerbose((nl,write(compiling -> (A,B,C,D,E)),nl)),
@@ -778,7 +795,11 @@ forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)|Rest],
   append(PrefixCode,RestCode,Code).
 
 forth_to_asm([
-               func(Name,ArgTypes,ArgCount,FRC,label(ReturnLabelName))
+               func(Name,
+                    ArgTypes,
+                    ArgCount,
+                    FRC,
+                    label(ReturnLabelName))
                | Rest
              ],
              Code,
@@ -843,7 +864,11 @@ forth_to_asm(['2dup'|Rest],Code,S,NewS,RC) :-
 %forth_to_asm([execute(N)|Rest],Code,S,NewS) :-
 %forth_to_asm([call(function,N)|Rest],Code,S,NewS) :-
 
-forth_to_asm([N,pick|Rest],[mov(Location,Target)|RestCode],S,NewS,RC) :-
+forth_to_asm([N,pick|Rest],
+             [mov(Location,Target)|RestCode],
+             S,
+             NewS,
+             RC) :-
   number(N),
   pick(Location,N,S),
   % no buffering
@@ -868,9 +893,13 @@ forth_to_asm([swap|Rest],Code,S,NS,RC) :-
   forth_to_asm(Rest,RestCode,S,NS,RC),
   append([xchg(LocationA,LocationB)],RestCode,Code).
 
-forth_to_asm([swap|Rest],
+forth_to_asm([swap | Rest],
              Code,
-             state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
+             state(0,
+                   RegisterCount,
+                   RegisterShift,
+                   StackOffset,
+                   RegisterNames),
              NewState,
              RC) :-
   !,
@@ -882,7 +911,11 @@ forth_to_asm([swap|Rest],
   forth_to_asm([swap|Rest],RestCode,State1,NewState,RC),
   append([pop(Register)],RestCode,Code).
 
-forth_to_asm([intrinsic(Name,[Type1],1) | Rest],Code,State,NewState,RC) :-
+forth_to_asm([intrinsic(Name,[Type1],1) | Rest],
+             Code,
+             State,
+             NewState,
+             RC) :-
   !,
   intrinsic_instructions(intrinsic(Name,[Type1],1),Target,OperationCode),
   force_to_register_and_get_first(Target,Buffering,State,State1),
@@ -890,7 +923,7 @@ forth_to_asm([intrinsic(Name,[Type1],1) | Rest],Code,State,NewState,RC) :-
   appendAll([Buffering,OperationCode,RestCode],Code).
 
 forth_to_asm(
-  [intrinsic(Name,[Type1,Type2],1)|Rest],
+  [intrinsic(Name,[Type1,Type2],1) | Rest],
   Code,
   State,
   NewState,
@@ -932,7 +965,7 @@ forth_to_asm(
 %forth_to_asm([label(Name)|Rest],[label(Name)|RestCode],State,NewState) :-
   %forth_to_asm(Rest,RestCode,State,NewState).
 
-forth_to_asm([num(int(N))|Rest],Result,State,NewState,RC) :-
+forth_to_asm([num(int(N)) | Rest],Result,State,NewState,RC) :-
   !,
   allocate_register(Register,Buffer,State,State1),
   forth_to_asm(Rest,RestCode,State1,NewState,RC),
