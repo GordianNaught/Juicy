@@ -94,7 +94,10 @@ infer(Definition,
   infer_each(Body,
              InferredBody,
              _Types,
-             [current(Name,ArgumentTypes,ReturnType,ReturnCount)|Context],
+             [
+               current(Name,ArgumentTypes,ReturnType,ReturnCount)
+               | Context
+             ],
              _NewContext,
              ReturnType),
   ifVerbose((write("infer each done"),nl)),
@@ -167,7 +170,12 @@ infer(return(Expr),
       Context,
       FunctionReturnType) :-
   !,
-  infer(Expr,InferredExpr,ExprReturnType,Context,_ContextAfter,FunctionReturnType),
+  infer(Expr,
+        InferredExpr,
+        ExprReturnType,
+        Context,
+        _ContextAfter,
+        FunctionReturnType),
   !,
   (ExprReturnType = FunctionReturnType ->
      find(current(Name,ArgumentTypes,FunctionReturnType,ReturnCount),
@@ -396,4 +404,3 @@ infer_program(Definitions, Inferrences) :-
     Inferrences,
     definition(Name,Args,R,_RC,_),
     ifVerbose(format("~w ~w~w\n",[R,Name,Args]))).
-  
