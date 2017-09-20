@@ -38,7 +38,7 @@ symbolic_instructions_to_asm([I|Rest],Asm) :-
   format(string(Asm),"  ~w\n~w", [I,RestAsm]).
 
 symbolic_program_to_asm(Parts,Result) :-
-  Goal = (juicy:symbolic_asm_to_asm(Part,Asm),format(string(String),"~w",[Asm])),
+  Goal = (symbolic_asm_to_asm(Part,Asm),format(string(String),"~w",[Asm])),
   do_each(Parts,Part,Goal,String,Strings),
   append_strings_delimited(Strings,Result,"").
 
