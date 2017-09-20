@@ -541,7 +541,11 @@ forth_to_asm([],
   !,
   pick(Result,
        0,
-       state(UtilizedRegisters,RegisterCount,RegisterShift,0,RegisterNames)).
+       state(UtilizedRegisters,
+             RegisterCount,
+             RegisterShift,
+             0,
+             RegisterNames)).
 
 % registers are used and StackOffset is nonzero
 forth_to_asm([],
@@ -773,7 +777,10 @@ forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)|Rest],
   forth_to_asm(Rest,RestCode,State3,NewState,RC),
   append(PrefixCode,RestCode,Code).
 
-forth_to_asm([func(Name,ArgTypes,ArgCount,FRC,label(ReturnLabelName))|Rest],
+forth_to_asm([
+               func(Name,ArgTypes,ArgCount,FRC,label(ReturnLabelName))
+               | Rest
+             ],
              Code,
              State,
              NewState,
