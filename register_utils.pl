@@ -1,3 +1,5 @@
+%% This module provides utilities for register
+%% and stack manipulations.
 :- module(
   register_utils,
   [
@@ -213,8 +215,12 @@ nip(NipCount,
                      RegisterNames)),
   NewStackOffset is StackOffset - (NipCount+1).
 
+% drop(Number,Code,StartState,EndState)
+
+% drop nothing
 drop(0,[],S,S) :- !.
 
+% no utilized registers
 drop(N,
      [add(N*cell_size,stack_pointer)],
      state(0,
@@ -230,6 +236,7 @@ drop(N,
   !,
   NewStackOffset is StackOffset - N.
 
+% more registers utilized than values we would like to drop
 drop(N,
      [],
      state(UtilizedRegisters,
@@ -246,6 +253,7 @@ drop(N,
   !,
   NewUtilization is UtilizedRegisters - N.
 
+% less registers utilized than values we would like to drop
 drop(N,
      [add(StackRemoves*cell_size,stack_pointer)],
      state(UtilizedRegisters,
@@ -281,10 +289,13 @@ remove_all_but(NumberToPreserve,
                RegisterNames),
          NewState).
 
+% pick(Result, WhereTheThingIs, State).
+
 pick(stack(StackIndex),Position,state(UtilizedRegisters,_,_,_,_)) :-
   Position >= UtilizedRegisters,
   !,
   StackIndex is Position - UtilizedRegisters.
+
 pick(Place,
      Position,
      state(UtilizedRegisters,
@@ -301,7 +312,7 @@ pick(Place,
           RegisterShift,
           StackOffset,
           RegisterNames)).
-  
+
 pick_from_top(stack(StackIndex),
               Index,
               state(_UtilizedRegisters,
@@ -359,7 +370,7 @@ move_n_to_top(Count,StartCount,Code,State,NewState) :-
   pick_from_top(Target,TargetLocation,State),
   move_n_to_top(Location,StartCount,RestCode,State,NewState),
   appendAll([[mov(reg(R),Target)],RestCode],Code).
-  
+
 move_n_to_top(Count,StartCount,Code,State,NewState) :-
   Location is Count-1,
   pick(stack(S),Location,State),
