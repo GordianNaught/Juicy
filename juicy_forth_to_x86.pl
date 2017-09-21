@@ -6,6 +6,7 @@
 :- use_module(juicy_intrinsics).
 :- use_module(juicy_global).
 :- use_module(translate_instruction).
+:- use_module(register_utils).
 
 size_of(int,8).
 size_of(float,8).
@@ -29,9 +30,6 @@ size_of(char,4).
 % do loop
 % if else then
 
-register_count(3).
-register_name(N,reg(N)).
-
 % This functor represents current state of the registers and stack.
 % It should help encapsulate the available registers and such on
 % a per architecture basis in the future when more architectures are
@@ -43,364 +41,10 @@ register_name(N,reg(N)).
 %       StackOffset,
 %       RegisterNames).
 
-% This predicate shows the expected starting state upon entering a function.
+% This predicate gives the expected starting state upon entering a function.
 start_state(
   ArgCount,
   state(0,8,0,ArgCount,registers(r8,r9,r10,r11,r12,r13,r14,r15))).
-
-
-push_all_registers([],
-                   state(0,
-                         RegisterCount,
-                         RegisterShift,
-                         StackOffset,
-                         RegisterNames),
-                   state(0,
-                         RegisterCount,
-                         RegisterShift,
-                         StackOffset,
-                         RegisterNames)) :-
-  !.
-
-push_all_registers([push(Register) | RestInstructions],
-                   state(UtilizedRegisters,
-                         RegisterCount,
-                         RegisterShift,
-                         StackOffset,
-                         RegisterNames),
-                   NewState) :-
-  RegisterLocation is UtilizedRegisters - 1,
-  pick(Register,
-       RegisterLocation,
-       state(UtilizedRegisters,
-             RegisterCount,
-             RegisterShift,
-             StackOffset,
-             RegisterNames)),
-  RegistersLeft = RegisterLocation,
-  NewOffset is StackOffset + 1,
-  NewRegisterShift is RegisterShift + 1,
-  !,
-  push_all_registers(
-    RestInstructions,
-    state(RegistersLeft,
-          RegisterCount,
-          NewRegisterShift,
-          NewOffset,
-          RegisterNames),
-    NewState).
-
-force_to_register_and_get_first(
-  Register,
-  [pop(Register)],
-  state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-  state(1,RegisterCount,RegisterShift,NewStackOffset,RegisterNames)) :-
-
-  !,
-  get_first_register(Register,
-                     state(0,
-                           RegisterCount,
-                           RegisterShift,
-                           StackOffset,
-                           RegisterNames)),
-  NewStackOffset is StackOffset - 1.
-
-force_to_register_and_get_first(Register,[],State,State) :-
-  !, pick(Register,0,State).
-
-get_register(reg(Name),
-             N,
-             state(UtilizedRegisters,
-                   RegisterCount,
-                   RegisterShift,
-                   _,
-                   RegisterNames)) :-
-  N =< UtilizedRegisters,
-  Index is 1 + ((RegisterShift + N) mod RegisterCount),
-  arg(Index,RegisterNames,Name).
-
-get_first_register(Register,State) :-
-  state(UtilizedRegisters,_,_,_,_) = State,
-  RegisterIndex is UtilizedRegisters,
-  get_register(Register,RegisterIndex,State).
-
-allocate_register(Register,
-                  [],
-                  state(UtilizedRegisters,
-                        RegisterCount,
-                        RegisterShift,
-                        StackOffset,
-                        RegisterNames),
-                  state(NewUtilized,
-                        RegisterCount,
-                        RegisterShift,
-                        StackOffset,
-                        RegisterNames)) :-
-  UtilizedRegisters < RegisterCount,
-  !,
-  get_first_register(
-    Register,
-    state(UtilizedRegisters,
-          RegisterCount,
-          RegisterShift,
-          StackOffset,
-          RegisterNames)),
-  NewUtilized is UtilizedRegisters + 1.
-
-allocate_register(RegisterToBuffer,
-                  [push(RegisterToBuffer)],
-                  state(UtilizedRegisters,
-                        RegisterCount,
-                        RegisterShift,
-                        StackOffset,
-                        RegisterNames),
-                  state(UtilizedRegisters,
-                        RegisterCount,
-                        NewRegisterShift,
-                        NewStackOffset,
-                        RegisterNames)) :-
-  UtilizedRegisters == RegisterCount,
-  !,
-  get_register(
-    RegisterToBuffer,
-    0,
-    state(UtilizedRegisters,
-          RegisterCount,
-          RegisterShift,
-          StackOffset,
-          RegisterNames)),
-  NewStackOffset is StackOffset + 1,
-  NewRegisterShift is RegisterShift + 1.
-
-nip(NipCount,
-    [mov(TopOfstack,Destination)],
-    state(UtilizedRegisters,
-          RegisterCount,
-          RegisterShift,
-          StackOffset,
-          RegisterNames),
-    state(NewUtilization,
-          RegisterCount,
-          RegisterShift,
-          StackOffset,
-          RegisterNames)) :-
-  UtilizedRegisters > 0,
-  NipCount < UtilizedRegisters,
-  !,
-  Top is UtilizedRegisters - 1,
-  Target is UtilizedRegisters - (NipCount+1),
-  NewUtilization is UtilizedRegisters - NipCount,
-  get_register(TopOfstack,
-               Top,
-               state(UtilizedRegisters,
-                     RegisterCount,
-                     RegisterShift,
-                     StackOffset,
-                     RegisterNames)),
-  get_register(Destination,
-               Target,
-               state(UtilizedRegisters,
-                     RegisterCount,
-                     RegisterShift,
-                     StackOffset,
-                     RegisterNames)).
-
-nip(NipCount,
-    [add(StackNips * cell_size,stack_pointer)],
-    state(UtilizedRegisters,
-          RegisterCount,
-          RegisterShift,
-          StackOffset,
-          RegisterNames),
-    state(1,RegisterCount,NewRegisterShift,NewStackOffset,RegisterNames)) :-
-  NipCount >= UtilizedRegisters,
-  UtilizedRegisters > 0,
-  !,
-  %later
-  %write(here),nl,
-  RegisterNips is UtilizedRegisters-1,
-  NewRegisterShift is RegisterShift + RegisterNips,
-  StackNips is NipCount - RegisterNips,
-  NewStackOffset is StackOffset - StackNips.
-
-nip(NipCount,
-    [
-      pop(FirstRegister),
-      add(NipCount*cell_size,stack_pointer)
-    ],
-    state(0,RegisterCount,RegisterShift,StackOffset,RegisterNames),
-    %assume at least one registerget_first_register
-    state(1,RegisterCount,RegisterShift,NewStackOffset,RegisterNames)) :-
-  %StackNips is NipCount - 1,
-  get_register(FirstRegister,
-               0,
-               state(0,
-                     RegisterCount,
-                     RegisterShift,
-                     StackOffset,
-                     RegisterNames)),
-  NewStackOffset is StackOffset - (NipCount+1).
-drop(0,[],S,S) :- !.
-drop(N,
-     [add(N*cell_size,stack_pointer)],
-     state(0,
-           RegisterCount,
-           RegisterShift,
-           StackOffset,
-           RegisterNames),
-     state(0,
-           RegisterCount,
-           RegisterShift,
-           NewStackOffset,
-           RegisterNames)) :-
-  !,
-  NewStackOffset is StackOffset - N.
-
-drop(N,
-     [],
-     state(UtilizedRegisters,
-           RegisterCount,
-           RegisterShift,
-           StackOffset,
-           RegisterNames),
-     state(NewUtilization,
-           RegisterCount,
-           RegisterShift,
-           StackOffset,
-           RegisterNames)) :-
-  UtilizedRegisters >= N,
-  !,
-  NewUtilization is UtilizedRegisters - N.
-
-drop(N,
-     [add(StackRemoves*cell_size,stack_pointer)],
-     state(UtilizedRegisters,
-           RegisterCount,
-           RegisterShift,
-           StackOffset,
-           RegisterNames),
-     state(0,
-           RegisterCount,
-           RegisterShift,
-           NewStackOffset,
-           RegisterNames)) :-
-  UtilizedRegisters < N,
-  !,
-  StackRemoves is N - UtilizedRegisters,
-  NewStackOffset is StackOffset - StackRemoves.
-
-remove_all_but(NumberToPreserve,
-               Code,
-               state(UtilizedRegisters,
-                     RegisterCount,
-                     RegisterShift,
-                     StackOffset,
-                     RegisterNames),
-               NewState) :-
-  NumberToRemove is (UtilizedRegisters + StackOffset) - NumberToPreserve,
-  drop(NumberToRemove,
-         Code,
-         state(UtilizedRegisters,
-               RegisterCount,
-               RegisterShift,
-               StackOffset,
-               RegisterNames),
-         NewState).
-
-pick(stack(StackIndex),Position,state(UtilizedRegisters,_,_,_,_)) :-
-  Position >= UtilizedRegisters,
-  !,
-  StackIndex is Position - UtilizedRegisters.
-pick(Place,
-     Position,
-     state(UtilizedRegisters,
-           RegisterCount,
-           RegisterShift,
-           StackOffset,
-           RegisterNames)) :-
-  RegisterIndex is UtilizedRegisters - (1 + Position),
-  get_register(
-    Place,
-    RegisterIndex,
-    state(UtilizedRegisters,
-          RegisterCount,
-          RegisterShift,
-          StackOffset,
-          RegisterNames)).
-  
-pick_from_top(stack(StackIndex),
-              Index,
-              state(_UtilizedRegisters,
-                    _RegisterCount,
-                    _RegisterShift,
-                    StackOffset,
-                    _RegisterNames)) :-
-  Index < StackOffset,
-  !,
-  StackIndex = StackOffset-(Index+1).
-pick_from_top(reg(Name),
-              Index,
-              state(UtilizedRegisters,
-                    RegisterCount,
-                    RegisterShift,
-                    StackOffset,
-                    RegisterNames)) :-
-  Index >= StackOffset,
-  !,
-  RegisterIndex = (Index-StackOffset),
-  PickIndex = UtilizedRegisters - (RegisterIndex + 1),
-  pick(reg(Name),PickIndex,
-  state(UtilizedRegisters,
-        RegisterCount,
-        RegisterShift,
-        StackOffset,
-        RegisterNames)).
-
-move_n_to_top(Count,
-              [],
-              state(UtilizedRegisters,
-                    RegisterCount,
-                    RegisterShift,
-                    StackOffset,
-                    RegisterNames),
-              state(UtilizedRegisters,
-                    RegisterCount,
-                    RegisterShift,
-                    StackOffset,
-                    RegisterNames)) :-
-  Count is UtilizedRegisters + StackOffset,
-  !.
-move_n_to_top(N,Code,State,NewState) :-
-  move_n_to_top(N,N,Code,State,NewState).
-
-move_n_to_top(0,_,[],State,State) :- !.
-
-move_n_to_top(Count,StartCount,Code,State,NewState) :-
-  Location is Count-1,
-  pick(reg(R),Location,State),
-  !,
-  TargetLocation is StartCount - Count,
-  pick_from_top(Target,TargetLocation,State),
-  move_n_to_top(Location,StartCount,RestCode,State,NewState),
-  appendAll([[mov(reg(R),Target)],RestCode],Code).
-  
-move_n_to_top(Count,StartCount,Code,State,NewState) :-
-  Location is Count-1,
-  pick(stack(S),Location,State),
-  !,
-  TargetLocation is StartCount - Count,
-  pick_from_top(Target,TargetLocation,State),
-  move_n_to_top(Location,StartCount,RestCode,State,NewState),
-  appendAll(
-    [
-      [
-        mov(stack(S),
-        reg(rax)),
-        mov(reg(rax),Target)
-      ],
-      RestCode
-    ],
-    Code).
 
 forth_to_asm(A,B,C,D,E) :-
   ifVerbose((nl,write(compiling -> (A,B,C,D,E)),nl)),
@@ -503,6 +147,7 @@ forth_to_asm([],
 
 % no registers used and StackOffset is 0 means the function failed
 
+% void function with no arguments
 forth_to_asm(
   [
     num(int(ReturnLabelName)),
@@ -534,6 +179,7 @@ forth_to_asm(
   !,
   append(PrefixCode,RestCode,Code).
 
+% non-void function with no arguments
 forth_to_asm(
   [
     num(int(ReturnLabelName)),
@@ -574,6 +220,7 @@ forth_to_asm([exit|Rest],
   forth_to_asm([],ExitCode,State,_State1,RC),
   forth_to_asm(Rest,RestCode,State,NewState,RC),
   append(ExitCode,RestCode,Code).
+
 forth_to_asm([if(label(FailLabel),State1)|Rest],
              Code,
              State,
@@ -683,6 +330,7 @@ forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)],
     ],
     Code).
 
+% tailcall not at end of function
 forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)|Rest],
              Code,
              State,
@@ -703,13 +351,13 @@ forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)|Rest],
   forth_to_asm(Rest,RestCode,State3,NewState,RC),
   append(PrefixCode,RestCode,Code).
 
-forth_to_asm([
-               func(Name,
-                    ArgTypes,
-                    ArgCount,
-                    FRC,
-                    label(ReturnLabelName))
-               | Rest
+% function application
+forth_to_asm([func(Name,
+                   ArgTypes,
+                   ArgCount,
+                   FRC,
+                   label(ReturnLabelName))
+              | Rest
              ],
              Code,
              State,
@@ -793,6 +441,7 @@ forth_to_asm([N,pick|Rest],Code,S,NewS,RC) :-
   forth_to_asm(Rest,RestCode,S1,NewS,RC),
   appendAll([Buffering,[mov(Location,Target)],RestCode],Code).
 
+% at least one register utilized
 forth_to_asm([swap|Rest],Code,S,NS,RC) :-
   S = state(UtilizedRegisters,_,_,_,_),
   UtilizedRegisters > 0,
@@ -802,6 +451,7 @@ forth_to_asm([swap|Rest],Code,S,NS,RC) :-
   forth_to_asm(Rest,RestCode,S,NS,RC),
   append([xchg(LocationA,LocationB)],RestCode,Code).
 
+% no registers utilized
 forth_to_asm([swap | Rest],
              Code,
              state(0,
@@ -820,6 +470,7 @@ forth_to_asm([swap | Rest],
   forth_to_asm([swap|Rest],RestCode,State1,NewState,RC),
   append([pop(Register)],RestCode,Code).
 
+% intrinsic of one argument with one return value
 forth_to_asm([intrinsic(Name,[Type1],1) | Rest],
              Code,
              State,
@@ -831,12 +482,12 @@ forth_to_asm([intrinsic(Name,[Type1],1) | Rest],
   forth_to_asm(Rest,RestCode,State1,NewState,RC),
   appendAll([Buffering,OperationCode,RestCode],Code).
 
-forth_to_asm(
-  [intrinsic(Name,[Type1,Type2],1) | Rest],
-  Code,
-  State,
-  NewState,
-  RC) :-
+% intrinsic of two arguments with one return value
+forth_to_asm([intrinsic(Name,[Type1,Type2],1) | Rest],
+             Code,
+             State,
+             NewState,
+            RC) :-
 
   intrinsic(Name,[Type1,Type2],_ReturnType,1),
   !,
