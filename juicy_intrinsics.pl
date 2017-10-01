@@ -93,40 +93,36 @@ compSetInstruction('!=',setne).
 %                                  RETURN_COUNT),
 %                        TARGET_REGISTER,
 %                        CODE_TO_EMIT)
-intrinsic_instructions(
-  intrinsic(emit,[ascii],1),
-  Target,
-  [
-    mov(Target,reg(rax)),
-    xor(reg(rdi),reg(rdi)),
-    movsbl(reg(al),reg(edi)),
-    call(putchar)
-    %movsbq(reg(al),Target)
-  ]).
+intrinsic_instructions(intrinsic(emit,[ascii],1),
+                       Target,
+                       [
+                         mov(Target,reg(rax)),
+                         xor(reg(rdi),reg(rdi)),
+                         movsbl(reg(al),reg(edi)),
+                         call(putchar)
+                         %movsbq(reg(al),Target)
+                       ]).
 
-intrinsic_instructions(
-  intrinsic(ascii,[byte],1),
-  _Target,
-  []).
+intrinsic_instructions(intrinsic(ascii,[byte],1),
+                       _Target,
+                       []).
   
-intrinsic_instructions(
-  intrinsic(byte,[ascii],1),
-  _Target,
-  []).
+intrinsic_instructions(intrinsic(byte,[ascii],1),
+                       _Target,
+                       []).
 
-intrinsic_instructions(
-  intrinsic(byte,[int],1),
-  Target,
-  [
-    mov(Target,reg(rax)),
-    xor(Target,Target),
-    movsbq(reg(al),Target)
-  ]).
+intrinsic_instructions(intrinsic(byte,[int],1),
+                       Target,
+                       [
+                         mov(Target,reg(rax)),
+                         xor(Target,Target),
+                         movsbq(reg(al),Target)
+                       ]).
 
-intrinsic_instructions(
-  intrinsic(Name,[ArgumentType],_ReturnCount),
-  _Target,
-  _Code) :-
+% This is a fall through predicate to give an error.
+intrinsic_instructions(intrinsic(Name,[ArgumentType],_ReturnCount),
+                       _Target,
+                       _Code) :-
   format("unable to find instructions for intrinsic"),
   format("~w on argument of type ~w~n",[Name,ArgumentType]),
   !,
@@ -150,87 +146,78 @@ intrinsic_instructions(intrinsic(+,[int,int],1),
                        Destination,
                        [add(Source,Destination)]) :- !.
 
-intrinsic_instructions(
-  intrinsic(Comp,[int,int],1),
-  Source,
-  Destination,
-  [xor(reg(rax),reg(rax)),
-   cmp(Source,Destination),
-   ConstructedPart,
-   neg(reg(rax)),
-   mov(reg(rax),Destination)]) :-
-
+intrinsic_instructions(intrinsic(Comp,[int,int],1),
+                       Source,
+                       Destination,
+                       [
+                         xor(reg(rax),reg(rax)),
+                         cmp(Source,Destination),
+                         ConstructedPart,
+                         neg(reg(rax)),
+                         mov(reg(rax),Destination)
+                       ]) :-
    compSetInstruction(Comp,CompInstruction),
    !,
    ConstructedPart =.. [CompInstruction,reg(al)].
    
-intrinsic_instructions(
-  intrinsic(+,[float,float],1),
-  Source,
-  Destination,
-  [
-    fld(Source),
-    fld(Destination),
-    fadd(reg(st1),reg(st0)),
-    fst(Destination)
-  ]) :- !.
+intrinsic_instructions(intrinsic(+,[float,float],1),
+                       Source,
+                       Destination,
+                       [
+                         fld(Source),
+                         fld(Destination),
+                         fadd(reg(st1),reg(st0)),
+                         fst(Destination)
+                       ]) :- !.
 
-intrinsic_instructions(
-  intrinsic(-,[int,int],1),
-  Source,
-  Destination,
-  [sub(Source,Destination)]) :- !.
+intrinsic_instructions(intrinsic(-,[int,int],1),
+                       Source,
+                       Destination,
+                       [sub(Source,Destination)]) :- !.
 
-intrinsic_instructions(
-  intrinsic(*,[int,int],1),
-  Source,
-  Destination,
-  [
-    mov(Destination,reg(rax)),
-    imul(Source),
-    mov(reg(rax),Destination)
-  ]) :- !.
+intrinsic_instructions(intrinsic(*,[int,int],1),
+                       Source,
+                       Destination,
+                       [
+                         mov(Destination,reg(rax)),
+                         imul(Source),
+                         mov(reg(rax),Destination)
+                       ]) :- !.
   
-intrinsic_instructions(
-  intrinsic(/,[int,int],1),
-  Source,
-  Destination,
-  [
-    xor(reg(rdx),reg(rdx)),
-    mov(Destination,reg(rax)),
-    idiv(Source),
-    mov(reg(rax),Destination)
-  ]) :- !.
+intrinsic_instructions(intrinsic(/,[int,int],1),
+                       Source,
+                       Destination,
+                       [
+                         xor(reg(rdx),reg(rdx)),
+                         mov(Destination,reg(rax)),
+                         idiv(Source),
+                         mov(reg(rax),Destination)
+                       ]) :- !.
   
-intrinsic_instructions(
-  intrinsic('%',[int,int],1),
-  Source,
-  Destination,
-  [
-    xorr(reg(rdx),reg(rdx)),
-    mov(Destination,reg(rax)),
-    idiv(Source),
-    mov(reg(rdx),Destination)
-  ]) :- !.
+intrinsic_instructions(intrinsic('%',[int,int],1),
+                       Source,
+                       Destination,
+                       [
+                         xorr(reg(rdx),reg(rdx)),
+                         mov(Destination,reg(rax)),
+                         idiv(Source),
+                         mov(reg(rdx),Destination)
+                       ]) :- !.
   
-intrinsic_instructions(
-  intrinsic('<<',[int,int],1),
-  Source,
-  Destination,
-  [sarl(Source,Destination)]) :- !.
+intrinsic_instructions(intrinsic('<<',[int,int],1),
+                       Source,
+                       Destination,
+                       [sarl(Source,Destination)]) :- !.
   
-intrinsic_instructions(
-  intrinsic('>>',[int,int],1),
-  Source,
-  Destination,
-  [sarr(Source,Destination)]) :- !.
+intrinsic_instructions(intrinsic('>>',[int,int],1),
+                       Source,
+                       Destination,
+                       [sarr(Source,Destination)]) :- !.
 
-intrinsic_instructions(
-  intrinsic(Name,ArgumentTypes,_ReturnCount),
-  _Source,
-  _Destination,
-  _Code) :-
-
+intrinsic_instructions(intrinsic(Name,ArgumentTypes,_ReturnCount),
+                       _Source,
+                       _Destination,
+                       _Code) :-
   format(
     "unable to find instructions for intrinsic ~w on arguments of types ~w~n",
     [Name,ArgumentTypes]),
