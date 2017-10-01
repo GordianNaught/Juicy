@@ -2,7 +2,7 @@
 :- module(juicy_forth_to_x86, [forth_to_x86/4]).
 :- use_module(utils).
 :- use_module(library(clpfd)).
-:- use_module(assembly_optimize, [assembly_optimize/3]).
+:- use_module(assembly_optimize).
 :- use_module(juicy_intrinsics).
 :- use_module(juicy_global).
 :- use_module(translate_instruction).
@@ -557,6 +557,7 @@ forth_to_asm([nip(N)|Rest],Code,R,NewR,RC) :-
   append(StartCode,RestCode,Code).
   % TODO fix backtracking craziness if still exists
   %write(append(StartCode,RestCode,Code)),nl.
+
 pretty_instructions([]) :- nl,nl.
 pretty_instructions([A|R]) :-
   ifVerbose(format("    ~w~n",[A])),
