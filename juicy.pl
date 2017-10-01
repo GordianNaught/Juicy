@@ -1,12 +1,11 @@
 % This module contains the interface to the
 % main functionality of the Juicy Compiler.
-:- module(
-  juicy,
-  [
-    compile/2,
-    start/1,
-    infer_file/1
-  ]).
+:- module(juicy,
+          [
+            compile/2,
+            start/1,
+            infer_file/1
+          ]).
 
 :- use_module(juicy_tokenize, [tokenize/2]).
 :- use_module(juicy_parse, [parse/2]).
@@ -202,6 +201,7 @@ parse_argument('--quiet',quiet,flag).
 parse_argument('-t',time,flag).
 parse_argument('--time',time,flag).
 
+% TODO: allow args like -abc
 parse_args(Args,ArgDict) :-
   DefaultDict = args{verbose:false,
                      time:false,
@@ -232,4 +232,3 @@ parse_args(Given,_,_) :-
   fail.
 
 
-% TODO: allow args like -abc
