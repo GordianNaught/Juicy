@@ -330,6 +330,56 @@ forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)],
     ],
     Code).
 
+% higher order tailcall at end of function
+forth_to_asm([higherOrderTailcall(ArgTypes,ArgCount,_TRC)],
+             Code,
+             State,
+             NewState,
+             RC) :-
+  pick(Func,0,State),
+  drop(1,Dropping0,State,State0),
+  move_n_to_top(ArgCount,Moving,State0,State1),
+  remove_all_but(ArgCount,Dropping,State1,State2),
+  push_all_registers(RegisterPushingCode,State2,State3),
+  %gensym(func,FLabel),
+  %cleanLabel((FLabel,ArgTypes),CleanName),
+  appendAll(
+    [
+      Dropping0,
+      [mov(Func,reg(rax))],
+      Moving,
+      Dropping,
+      RegisterPushingCode,
+      [jmp(indirect(reg(rax)))]
+    ],
+    Code).
+
+% higher order tailcall not at end of function
+forth_to_asm([higherOrderTailcall(ArgTypes,ArgCount,_TRC)|Rest],
+             Code,
+             State,
+             NewState,
+             RC) :-
+  pick(Func,0,State),
+  drop(1,Dropping0,State,State0),
+  move_n_to_top(ArgCount,Moving,State0,State1),
+  remove_all_but(ArgCount,Dropping,State1,State2),
+  push_all_registers(RegisterPushingCode,State2,State3),
+  %gensym(func,FLabel),
+  %cleanLabel((FLabel,ArgTypes),CleanName),
+  appendAll(
+    [
+      Dropping0,
+      [mov(Func,reg(rax))],
+      Moving,
+      Dropping,
+      RegisterPushingCode,
+      [jmp(indirect(reg(rax)))]
+    ],
+    PrefixCode),
+  forth_to_asm(Rest,RestCode,State3,NewState,RC),
+  append(PrefixCode,RestCode,Code).
+
 % tailcall not at end of function
 forth_to_asm([tailcall(Name,ArgTypes,ArgCount,_TRC)|Rest],
              Code,

@@ -73,7 +73,7 @@ containsAssignment(Code) :-
 
 max(A,B,A) :- A>=B, !.
 max(_,B,B).
-% signature(Name,ArgTypes,ReturnType)
+% signature(Name,ArgTypes,ReturnType,ReturnCount)
 
 findFunction(
   signature(Name,ArgTypes,ReturnType,ReturnCount),
@@ -217,10 +217,21 @@ compile(definition(Name,Arguments,ReturnType,ReturnCount,Body),
   OffsetWithArgs is Offset + ArgCount,
   compile_each(Body,Results,FullContext,_,OffsetWithArgs,_EndOffset,N,_),
   appendAll(Results,ResultsAppended),
+  write(ResultsAppended), nl,
   ifVerbose(format("~n    Bytecode optimizations:~n~n")),
   optimize(20,ResultsAppended,OptimizedCode),
   forth_to_x86(ArgCount,OptimizedCode,Asm,ReturnCount),
   !.
+
+%compile(apply(Thing,Args,ReturnCount),
+%        Compiled,
+%        Context,
+%        Context,
+%        Offset,
+%        NewOffset,
+%        N,
+%        ReturnType) :-
+%  write(compile(apply(Thing,Args,ReturnCount))), nl, fail.
 
 % higher order funcall
 % no assignment in args
@@ -256,6 +267,7 @@ compile(apply(var(F),Args,ReturnCount),
     ],
     Compiled),
   NewOffset is (ReturnCount-1)+(OffsetBeforeApplication-ArgCount).
+
 
 % higher order funcall
 compile(apply(var(F),Args,ReturnCount),
@@ -587,6 +599,18 @@ compile(assign(var(Dest),Source),
     fail),
   VarIndex is 0-OffsetAfterExpr.
 
+compile(func(Name,ArgTypes,ReturnType,ReturnCount),
+        [num(int(FLabel))],
+        Context,
+        Context,
+        Offset,
+        NewOffset,
+        _,
+        func(ArgTypes,ReturnType,ReturnCount)) :-
+  !,
+  cleanLabel((Name,ArgTypes),FLabel),
+  NewOffset is Offset + 1.
+
 compile(push(label(Name)),
         [num(int(Name))],
         Context,
@@ -622,6 +646,11 @@ compile(char(Char),[Code],Context,Context,Offset,NewOffset,_,char) :-
   char_code(Char,Code),
   NewOffset is Offset + 1.
 
+compile(Expr,_,_,_,_,_,_,_):-
+  format("Unable to compile expr AST: `~w'\n", [Expr]),
+  !,
+  fail.
+
 get_arg_types([],[]) :- !.
 get_arg_types([arg(Type,_Name)|RestArgs],[Type|RestTypes]) :-
   get_arg_types(RestArgs,RestTypes).
@@ -648,6 +677,49 @@ compile_program(Definitions,Codes) :-
 %compile(str(String),Compiled,Context,Context,Offset,NewOffset) :-
 %  NewOffset is Offset + 1.
 
+% higher order tailcall
+% no assignment in args
+% checked by not allowing extra stack shifting
+tail(apply(var(F),Args,ReturnCount),
+     Compiled,
+     Context,
+     Context,
+     Offset,
+     NewOffset,
+     N,
+     ReturnType) :-
+  write(tail(apply(var(F),Args,ReturnCount))), nl,
+  compile_each(
+    Args,
+    CompiledArgs,
+    Context,
+    Context,
+    Offset,
+    OffsetAfterArgs,
+    N,
+    ArgTypes),
+  getType(var(F),Context,Type),
+  write(getType(var(F),Context,Type)), nl,
+  compile(var(F),
+          CompiledF,
+          Context,
+          Context,
+          OffsetAfterArgs,
+          _OffsetAfterFunc,
+          N,
+          func(ArgTypes, ReturnType, ReturnCount)),
+  !,
+  length(ArgTypes,ArgCount),
+  appendAll(CompiledArgs,CompiledWithoutFuncall),
+  append(CompiledWithoutFuncall, CompiledF, BeforeCall),
+  write(BeforeCall), nl,
+  appendAll(
+    [
+      BeforeCall,
+      [higherOrderTailcall(ArgTypes,ArgCount,ReturnCount)]
+    ],
+    Compiled),
+  NewOffset is OffsetAfterArgs-(ArgCount-(ReturnCount-1)).
 
 % regular tail funcall
 % no assignment in args
@@ -660,7 +732,6 @@ tail(apply(var(F),Args,ReturnCount),
      NewOffset,
      N,
      ReturnType) :-
-
   compile_each(
     Args,
     CompiledArgs,
@@ -681,3 +752,17 @@ tail(apply(var(F),Args,ReturnCount),
     ],
     Compiled),
   NewOffset is OffsetBeforeApplication-(ArgCount-(ReturnCount-1)).
+
+tail(apply(var(F),Args,ReturnCount),
+     _Compiled,
+     _Context,
+     _Context,
+     _Offset,
+     _NewOffset,
+     _N,
+     _ReturnType) :-
+  currentSignature(signature(Name,_,_,_)),
+  format("unable to tail call with `~w' in function `~w'",
+         [F,Name]),
+  !,
+  fail.

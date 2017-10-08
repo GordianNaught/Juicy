@@ -189,10 +189,31 @@ infer(return(Expr),
 
 
 infer(var(X),var(X),Type,Context,Context,_FunctionReturn) :-
-  (find(type(X,Type),Context),
-   !
-   ;
-   format("unable to find type of ~w\n",[X]), !, fail).
+  find(type(X,Type),Context),
+   !.
+
+infer(var(X),
+      func(X,ArgTypes,Type,ReturnCount),
+      func(ArgTypes,Type,ReturnCount),
+      Context,
+      Context,
+      _FunctionReturn) :-
+  findSignature(X,ArgTypes,Type,ReturnCount),
+  !.
+
+infer(var(X),
+      intrinsic(X,ArgTypes,Type,ReturnCount),
+      func(ArgTypes,Type,ReturnCount),
+      Context,
+      Context,
+      _FunctionReturn) :-
+  intrinsic(X,ArgTypes,Type,ReturnCount),
+  !.
+    
+infer(var(X),_Inferred,_Type,_ContextIn,_ContextOut,_FunctionReturn) :-
+  format("unable to find type of ~w\n",[X]),
+  !,
+  fail.
 
 %apply local variable
    
@@ -205,8 +226,7 @@ infer(apply(var(X),Args),
       ContextAfter,
       FunctionReturnType) :-
   !,
-  
-infer_each(Args,InferredArgs,ArgTypes,Context,ContextAfter,FunctionReturnType),
+  infer_each(Args,InferredArgs,ArgTypes,Context,ContextAfter,FunctionReturnType),
   (
     find(type(X,XType),Context) ->
       (

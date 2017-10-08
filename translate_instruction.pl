@@ -1,5 +1,9 @@
 :- module(translate_instruction, [translate_instruction/2]).
 
+translate_location(indirect(Thing),String) :-
+  !,
+  translate_location(Thing,ThingStr),
+  format(string(String),"*~w",[ThingStr]).
 
 translate_location(reg(Name),String) :-
   !,
@@ -87,9 +91,5 @@ translate_instruction(Instruction,String) :-
   translate_location(Location, LocationString),
   format(string(String),"~w   ~w",[InstructionNameString, LocationString]).
   
-translate_instruction(reg(Name),String) :-
-  !,
-  format(string(String),"popq(%~w)",[Name]).
-
 translate_instruction(NotFound,_) :-
   format("cannot translate assembly instruction: ~w~n",[NotFound]), !, fail.

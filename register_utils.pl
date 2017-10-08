@@ -322,7 +322,7 @@ pick_from_top(stack(StackIndex),
                     _RegisterNames)) :-
   Index < StackOffset,
   !,
-  StackIndex = StackOffset-(Index+1).
+  StackIndex is StackOffset-(Index+1).
 
 pick_from_top(reg(Name),
               Index,
